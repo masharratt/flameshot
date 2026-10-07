@@ -18,6 +18,13 @@
 #import <CoreVideo/CoreVideo.h>
 #import <ScreenCaptureKit/ScreenCaptureKit.h>
 
+// This file relies on automatic reference counting. Without it, objects held
+// across asynchronous callbacks are freed early and the app crashes.
+#if !__has_feature(objc_arc)
+#error "Compile this file with -fobjc-arc"
+#endif
+
+
 namespace {
 
 NSString* toNSString(const QString& s)

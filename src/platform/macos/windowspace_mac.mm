@@ -6,13 +6,21 @@
 
 #import <AppKit/AppKit.h>
 
+// This file relies on automatic reference counting. Without it, objects held
+// across asynchronous callbacks are freed early and the app crashes.
+#if !__has_feature(objc_arc)
+#error "Compile this file with -fobjc-arc"
+#endif
+
+
 void showOnActiveSpace(QWidget* window)
 {
     if (!window) {
         return;
     }
     // winId() creates the native window if it does not exist yet
-    auto* view = reinterpret_cast<NSView*>(window->winId());
+    auto* view =
+      (__bridge NSView*)reinterpret_cast<void*>(window->winId());
     NSWindow* nsWindow = view.window;
     if (nsWindow) {
         nsWindow.collectionBehavior |=

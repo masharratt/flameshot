@@ -16,12 +16,11 @@ if (APPLE)
         macos/videothumbnail.mm
         macos/windowspace_mac.mm
     )
-    set_source_files_properties(
-        macos/screenrecorder.mm
-        macos/gifencoder.mm
-        macos/videothumbnail.mm
-        macos/windowspace_mac.mm
-        PROPERTIES COMPILE_FLAGS "-fobjc-arc")
+    # ARC for every Objective-C++ file. A set_source_files_properties() call
+    # here would not reach the flameshot target, which is defined in another
+    # directory, so the flag goes on the target by language instead.
+    target_compile_options(flameshot PRIVATE
+        $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>)
     # ScreenCaptureKit is linked weakly so the app still starts on macOS
     # versions that lack it; recording is hidden there.
     target_link_libraries(flameshot

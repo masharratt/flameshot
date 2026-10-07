@@ -1,6 +1,6 @@
 # Feature Status (masharratt/flameshot fork)
 
-**Last Updated:** 2026-10-07 (bendable arrows, select tool, editor hide and Cmd+Tab)
+**Last Updated:** 2026-10-07 (fixed recording crash: Objective-C files now built with ARC)
 
 | Token | Meaning |
 |-------|---------|
