@@ -21,6 +21,7 @@
 #include "tools/pixelate/pixelatetool.h"
 #include "tools/rectangle/rectangletool.h"
 #include "tools/redo/redotool.h"
+#include "tools/ruler/rulertool.h"
 #include "tools/save/savetool.h"
 #include "tools/selection/selectiontool.h"
 #include "tools/sizedecrease/sizedecreasetool.h"
@@ -65,6 +66,7 @@ CaptureTool* ToolFactory::CreateTool(CaptureTool::Type t, QObject* parent)
         if_TYPE_return_TOOL(TYPE_SIZEINCREASE, SizeIncreaseTool);
         if_TYPE_return_TOOL(TYPE_SIZEDECREASE, SizeDecreaseTool);
         if_TYPE_return_TOOL(TYPE_INVERT, InvertTool);
+        if_TYPE_return_TOOL(TYPE_RULER, RulerTool);
         if_TYPE_return_TOOL(TYPE_ACCEPT, AcceptTool);
         default:
             return nullptr;

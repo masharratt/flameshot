@@ -19,3 +19,4 @@ function(flameshot_add_unit_test name)
 endfunction()
 
 flameshot_add_unit_test(tst_strfparse SOURCES utils/strfparse.cpp)
+flameshot_add_unit_test(tst_rulermath SOURCES tools/ruler/rulermath.cpp)

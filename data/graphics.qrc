@@ -30,6 +30,7 @@
         <file>img/material/black/graphics.svg</file>
         <file>img/material/black/leftalign.svg</file>
         <file>img/material/black/line.svg</file>
+        <file>img/material/black/ruler.svg</file>
         <file>img/material/black/marker.svg</file>
         <file>img/material/black/mouse-off.svg</file>
         <file>img/material/black/mouse.svg</file>
@@ -74,6 +75,7 @@
         <file>img/material/white/invert.svg</file>
         <file>img/material/white/leftalign.svg</file>
         <file>img/material/white/line.svg</file>
+        <file>img/material/white/ruler.svg</file>
         <file>img/material/white/marker.svg</file>
         <file>img/material/white/minus.svg</file>
         <file>img/material/white/mouse-off.svg</file>
