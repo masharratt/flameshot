@@ -22,6 +22,11 @@ public:
                         const QRect& selection,
                         const QRect& globalRect,
                         int seconds);
+    // Toast for a saved screen recording (kind "mp4" or "gif"): first-frame
+    // thumbnail with Show in Finder and Copy path only.
+    static void showForRecording(const QString& path,
+                                 const QString& kind,
+                                 int seconds);
 
 protected:
     void enterEvent(QEnterEvent* event) override;
@@ -33,7 +38,8 @@ private:
                  const QPixmap& capture,
                  const QRect& selection,
                  const QRect& globalRect,
-                 int seconds);
+                 int seconds,
+                 bool recording = false);
 
     static void restack();
 

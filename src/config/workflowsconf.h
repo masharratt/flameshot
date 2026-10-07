@@ -28,6 +28,8 @@ private:
     void addWorkflow(const QString& hotkey, const QString& title);
     void onToggled(const QString& hotkey);
     void addEffectsGroup();
+    void addRecordingGroup();
+    void onRecordingChanged();
     void onEffectChanged();
     void updatePreview();
 
@@ -44,5 +46,10 @@ private:
     QSpinBox* m_cornerRadius = nullptr;
     QCheckBox* m_shadow = nullptr;
     QLabel* m_preview = nullptr;
+
+    // Only created when screen recording is supported
+    QMap<QString, QLabel*> m_recordShortcuts;
+    QSpinBox* m_gifFps = nullptr;
+    QSpinBox* m_gifMaxWidth = nullptr;
     QColor m_borderColorValue;
 };

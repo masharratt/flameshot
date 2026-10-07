@@ -5,6 +5,7 @@
 #include "config/setshortcutwidget.h"
 #include "core/hotkeyutils.h"
 #include "core/qguiappcurrentscreen.h"
+#include "platform/screenrecorder.h"
 #include "tools/capturetool.h"
 #include "tools/toolfactory.h"
 #include "utils/globalvalues.h"
@@ -147,7 +148,9 @@ void ShortcutsWidget::updateOptionWarning()
     QStringList offenders;
     for (const QString& name : { QStringLiteral("TAKE_SCREENSHOT"),
                                  QStringLiteral("CAPTURE_AND_EDIT"),
-                                 QStringLiteral("SCREENSHOT_HISTORY") }) {
+                                 QStringLiteral("SCREENSHOT_HISTORY"),
+                                 QStringLiteral("RECORD_MP4"),
+                                 QStringLiteral("RECORD_GIF") }) {
         if (isOptionOnlyShortcut(QKeySequence(m_config.shortcut(name)))) {
             offenders << name;
         }
@@ -248,6 +251,10 @@ void ShortcutsWidget::loadShortcuts()
     appendShortcut("TAKE_SCREENSHOT", tr("Capture screen"));
     appendShortcut("CAPTURE_AND_EDIT", tr("Capture and edit"));
     appendShortcut("SCREENSHOT_HISTORY", tr("Screenshot history"));
+    if (screenRecordingSupported()) {
+        appendShortcut("RECORD_MP4", tr("Record MP4"));
+        appendShortcut("RECORD_GIF", tr("Record GIF"));
+    }
 #elif defined(Q_OS_WIN)
     if (this->isPrintScreenKeyForSnippingDisabled()) {
         m_shortcuts << (QStringList() << "" << QObject::tr("Capture screen")

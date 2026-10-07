@@ -73,6 +73,16 @@ void CaptureRequest::setWorkflow(const QString& workflow)
     m_workflow = workflow;
 }
 
+CaptureRequest::RecordMode CaptureRequest::recordMode() const
+{
+    return m_recordMode;
+}
+
+void CaptureRequest::setRecordMode(RecordMode mode)
+{
+    m_recordMode = mode;
+}
+
 void CaptureRequest::setCaptureFirst(bool captureFirst)
 {
     m_captureFirst = captureFirst;

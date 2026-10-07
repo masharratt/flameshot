@@ -17,6 +17,7 @@ class InfoWindow;
 class CaptureLauncher;
 class QTimer;
 class QWidget;
+class RecordingController;
 #ifdef ENABLE_IMGUR
 class UploadHistory;
 #endif
@@ -81,8 +82,14 @@ signals:
                       const QPixmap& capture,
                       const QRect& selection,
                       const QRect& globalRect);
+    // A screen recording was saved. kind is "mp4" or "gif", size in pixels.
+    void recordingSaved(const QString& path,
+                        const QString& kind,
+                        const QSize& size);
 
 public slots:
+    // Record hotkey or menu item: picks an area, or stops a running recording
+    void toggleRecording(CaptureRequest::RecordMode mode);
     void requestCapture(const CaptureRequest& request);
     // Reopen a saved capture in the editor. Saving overwrites the same file
     // when overwrite is true, otherwise it saves a numbered copy beside it.
@@ -109,6 +116,7 @@ private:
     QPointer<InfoWindow> m_infoWindow;
     QPointer<CaptureLauncher> m_launcherWindow;
     QPointer<ConfigWindow> m_configWindow;
+    RecordingController* m_recording = nullptr;
 
 #if defined(Q_OS_MACOS)
 public:

@@ -3,12 +3,14 @@
 #include "capturetoast.h"
 #include "core/flameshot.h"
 #include "core/flameshotdaemon.h"
+#include "platform/videothumbnail.h"
 #include "widgets/toaststack.h"
 
 #include <QDesktopServices>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QHBoxLayout>
+#include <QImageReader>
 #include <QLabel>
 #include <QProcess>
 #include <QPushButton>
@@ -29,7 +31,8 @@ CaptureToast::CaptureToast(const QString& path,
                            const QPixmap& capture,
                            const QRect& selection,
                            const QRect& globalRect,
-                           int seconds)
+                           int seconds,
+                           bool recording)
   : QWidget(nullptr,
             Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint |
               Qt::WindowDoesNotAcceptFocus)
@@ -72,18 +75,27 @@ CaptureToast::CaptureToast(const QString& path,
         row->addWidget(b);
         return b;
     };
-    addButton(tr("Edit"), [this]() {
-        Flameshot::instance()->editSavedCapture(m_path, m_capture, m_globalRect);
-        close();
-    });
-    addButton(tr("Copy"), [this]() {
-        FlameshotDaemon::copyToClipboard(m_capture);
-        close();
-    });
-    addButton(tr("Pin"), [this]() {
-        FlameshotDaemon::createPin(m_capture, m_selection);
-        close();
-    });
+    if (recording) {
+        addButton(tr("Copy path"), [this]() {
+            FlameshotDaemon::copyToClipboard(
+              m_path, tr("Path copied to clipboard."));
+            close();
+        });
+    } else {
+        addButton(tr("Edit"), [this]() {
+            Flameshot::instance()->editSavedCapture(
+              m_path, m_capture, m_globalRect);
+            close();
+        });
+        addButton(tr("Copy"), [this]() {
+            FlameshotDaemon::copyToClipboard(m_capture);
+            close();
+        });
+        addButton(tr("Pin"), [this]() {
+            FlameshotDaemon::createPin(m_capture, m_selection);
+            close();
+        });
+    }
     addButton(tr("Show in Finder"), [this]() {
 #if defined(Q_OS_MACOS)
         QProcess::startDetached(QStringLiteral("open"),
@@ -114,6 +126,34 @@ void CaptureToast::showFor(const QString& path,
         return;
     }
     auto* toast = new CaptureToast(path, capture, selection, globalRect, seconds);
+    s_toasts.prepend(toast);
+    restack();
+    toast->show();
+    toast->m_timer.start();
+}
+
+void CaptureToast::showForRecording(const QString& path,
+                                    const QString& kind,
+                                    int seconds)
+{
+    if (seconds <= 0) {
+        return;
+    }
+    const qreal dpr = QGuiApplication::primaryScreen()->devicePixelRatio();
+    QImage frame;
+    if (kind == QLatin1String("gif")) {
+        // The first frame is what QImageReader decodes by default
+        QImageReader reader(path);
+        const QSize orig = reader.size();
+        if (orig.isValid()) {
+            reader.setScaledSize(orig.scaled(kThumbMax * dpr, Qt::KeepAspectRatio));
+        }
+        frame = reader.read();
+    } else {
+        frame = videoFirstFrame(path, kThumbMax * dpr);
+    }
+    auto* toast = new CaptureToast(
+      path, QPixmap::fromImage(frame), QRect(), QRect(), seconds, true);
     s_toasts.prepend(toast);
     restack();
     toast->show();

@@ -111,6 +111,8 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("effectCornerRadius"          ,BoundedInt         ( 0, 200, 0     )),
     OPTION("effectShadow"                ,Bool               ( false         )),
     OPTION("captureHistoryMax"           ,LowerBoundedInt    ( 1, 500        )),
+    OPTION("gifFps"                      ,BoundedInt         ( 1, 50, 15     )),
+    OPTION("gifMaxWidth"                 ,BoundedInt         ( 120, 3840, 960)),
     OPTION("actionsTakeScreenshot"       ,ActionList         ( "TAKE_SCREENSHOT"  )),
     OPTION("actionsCaptureAndEdit"       ,ActionList         ( "CAPTURE_AND_EDIT" )),
     OPTION("uploadHistoryMax"            ,LowerBoundedInt    ( 0, 25         )),
@@ -219,6 +221,8 @@ static QMap<QString, QSharedPointer<KeySequence>> recognizedShortcuts = {
     SHORTCUT("TYPE_DELETE_CURRENT_TOOL" ,   "Delete"                ),
 #endif
     SHORTCUT("CAPTURE_AND_EDIT"         ,                           ),
+    SHORTCUT("RECORD_MP4"               ,                           ),
+    SHORTCUT("RECORD_GIF"               ,                           ),
     SHORTCUT("TYPE_PIN"                 ,                           ),
     SHORTCUT("TYPE_SIZEINCREASE"        ,                           ),
     SHORTCUT("TYPE_SIZEDECREASE"        ,                           ),

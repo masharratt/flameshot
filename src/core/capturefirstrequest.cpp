@@ -17,6 +17,27 @@ CaptureRequest buildCaptureFirstRequest(const QString& workflow,
     return req;
 }
 
+CaptureRequest::RecordMode recordModeForHotkey(const QString& hotkey)
+{
+    if (hotkey == QLatin1String("RECORD_MP4")) {
+        return CaptureRequest::RecordMp4;
+    }
+    if (hotkey == QLatin1String("RECORD_GIF")) {
+        return CaptureRequest::RecordGif;
+    }
+    return CaptureRequest::RecordNone;
+}
+
+CaptureRequest buildRecordRequest(CaptureRequest::RecordMode mode)
+{
+    CaptureRequest req(CaptureRequest::GRAPHICAL_MODE);
+    req.addTask(CaptureRequest::ACCEPT_ON_SELECT);
+    // Plain overlay window, as for every capture-first request
+    req.setCaptureFirst(true);
+    req.setRecordMode(mode);
+    return req;
+}
+
 bool shouldApplyLastRegion(const CaptureRequest& req,
                            bool saveLastRegionEnabled)
 {

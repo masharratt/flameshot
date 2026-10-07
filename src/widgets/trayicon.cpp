@@ -4,6 +4,7 @@
 #include "core/flameshot.h"
 #include "core/flameshotdaemon.h"
 #include "core/qguiappcurrentscreen.h"
+#include "platform/screenrecorder.h"
 #include "utils/confighandler.h"
 #include "utils/globalvalues.h"
 #include "widgets/capturehistorywindow.h"
@@ -138,6 +139,28 @@ void TrayIcon::initMenu()
             &QAction::triggered,
             Flameshot::instance(),
             &Flameshot::launcher);
+    // Recording needs macOS 15+; the items do not exist elsewhere
+    if (screenRecordingSupported()) {
+        const struct
+        {
+            const char* text;
+            CaptureRequest::RecordMode mode;
+        } recordItems[] = {
+            { QT_TR_NOOP("Record &MP4"), CaptureRequest::RecordMp4 },
+            { QT_TR_NOOP("Record &GIF"), CaptureRequest::RecordGif },
+        };
+        for (const auto& item : recordItems) {
+            auto* action = new QAction(tr(item.text), this);
+            const auto mode = item.mode;
+            connect(action, &QAction::triggered, this, [mode]() {
+                // Let the menu close before the picker overlay opens
+                QTimer::singleShot(400, Flameshot::instance(), [mode]() {
+                    Flameshot::instance()->toggleRecording(mode);
+                });
+            });
+            m_recordActions << action;
+        }
+    }
     auto* configAction = new QAction(tr("&Configuration"), this);
     connect(configAction,
             &QAction::triggered,
@@ -200,6 +223,7 @@ void TrayIcon::initMenu()
 
     m_menu->addAction(m_captureAction);
     m_menu->addAction(m_launcherAction);
+    m_menu->addActions(m_recordActions);
     m_menu->addSeparator();
 #ifdef ENABLE_IMGUR
     m_menu->addAction(recentAction);

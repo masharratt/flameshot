@@ -16,6 +16,13 @@ CaptureRequest buildCaptureFirstRequest(const QString& workflow,
                                         const QString& savePath,
                                         const QString& picturesFallback);
 
+// Hotkey names that start a screen recording
+CaptureRequest::RecordMode recordModeForHotkey(const QString& hotkey);
+
+// Request that only picks the area to record: ACCEPT_ON_SELECT, no workflow
+// and no save path, so nothing is exported as an image.
+CaptureRequest buildRecordRequest(CaptureRequest::RecordMode mode);
+
 // Native macOS fullscreen animates and slows rapid captures, so capture-first
 // requests always use a plain overlay window.
 bool shouldUseNativeFullscreen(const CaptureRequest& req,

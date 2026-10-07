@@ -150,6 +150,37 @@ private slots:
         QVERIFY(!editKeepsOriginalPixels(QSize(401, 200), QSize(201, 100), 2.0));
         QVERIFY(editKeepsOriginalPixels(QSize(300, 150), QSize(300, 150), 1.0));
     }
+
+    void recordHotkeysMapToRecordModes()
+    {
+        QCOMPARE(recordModeForHotkey("RECORD_MP4"), CaptureRequest::RecordMp4);
+        QCOMPARE(recordModeForHotkey("RECORD_GIF"), CaptureRequest::RecordGif);
+        QCOMPARE(recordModeForHotkey("TAKE_SCREENSHOT"),
+                 CaptureRequest::RecordNone);
+        QCOMPARE(recordModeForHotkey(QString()), CaptureRequest::RecordNone);
+    }
+
+    void recordRequestPicksAreaOnly()
+    {
+        const CaptureRequest r = buildRecordRequest(CaptureRequest::RecordGif);
+        QCOMPARE(static_cast<int>(r.tasks()),
+                 static_cast<int>(CaptureRequest::ACCEPT_ON_SELECT));
+        QCOMPARE(r.recordMode(), CaptureRequest::RecordGif);
+        QCOMPARE(r.captureMode(), CaptureRequest::GRAPHICAL_MODE);
+        QVERIFY(r.captureFirst());
+        // No image is saved, so nothing may be run for the area pick
+        QVERIFY(r.workflow().isEmpty());
+        QVERIFY(r.path().isEmpty());
+    }
+
+    void ordinaryRequestsAreNotRecordRequests()
+    {
+        QCOMPARE(CaptureRequest(CaptureRequest::GRAPHICAL_MODE).recordMode(),
+                 CaptureRequest::RecordNone);
+        QCOMPARE(
+          buildCaptureFirstRequest("TAKE_SCREENSHOT", "/a", "/b").recordMode(),
+          CaptureRequest::RecordNone);
+    }
 };
 
 QTEST_GUILESS_MAIN(TestCaptureFirstRequest)

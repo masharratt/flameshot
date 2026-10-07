@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "workflowsconf.h"
+#include "platform/screenrecorder.h"
 #include "utils/confighandler.h"
 #include "utils/imageeffects.h"
 
@@ -46,6 +47,9 @@ WorkflowsConf::WorkflowsConf(QWidget* parent)
     addWorkflow(QStringLiteral("TAKE_SCREENSHOT"), tr("Capture screen"));
     addWorkflow(QStringLiteral("CAPTURE_AND_EDIT"), tr("Capture and edit"));
     addEffectsGroup();
+    if (screenRecordingSupported()) {
+        addRecordingGroup();
+    }
     layout->addStretch();
 
     updateComponents();
@@ -128,6 +132,58 @@ void WorkflowsConf::addEffectsGroup()
     static_cast<QVBoxLayout*>(layout())->addWidget(box);
 }
 
+void WorkflowsConf::addRecordingGroup()
+{
+    auto* box = new QGroupBox(tr("Screen recording"), this);
+    auto* boxLayout = new QVBoxLayout(box);
+
+    for (const QString& name :
+         { QStringLiteral("RECORD_MP4"), QStringLiteral("RECORD_GIF") }) {
+        auto* label = new QLabel(box);
+        boxLayout->addWidget(label);
+        m_recordShortcuts.insert(name, label);
+    }
+    auto* hint = new QLabel(
+      tr("Change the shortcuts in the Shortcuts tab. Press the shortcut again "
+         "to stop."),
+      box);
+    hint->setEnabled(false);
+    boxLayout->addWidget(hint);
+
+    auto* form = new QFormLayout();
+    m_gifFps = new QSpinBox(box);
+    m_gifFps->setRange(1, 50);
+    m_gifFps->setSuffix(tr(" fps"));
+    form->addRow(tr("GIF frame rate"), m_gifFps);
+
+    m_gifMaxWidth = new QSpinBox(box);
+    m_gifMaxWidth->setRange(120, 3840);
+    m_gifMaxWidth->setSuffix(tr(" px"));
+    form->addRow(tr("GIF maximum width"), m_gifMaxWidth);
+    boxLayout->addLayout(form);
+
+    connect(m_gifFps,
+            QOverload<int>::of(&QSpinBox::valueChanged),
+            this,
+            &WorkflowsConf::onRecordingChanged);
+    connect(m_gifMaxWidth,
+            QOverload<int>::of(&QSpinBox::valueChanged),
+            this,
+            &WorkflowsConf::onRecordingChanged);
+
+    static_cast<QVBoxLayout*>(layout())->addWidget(box);
+}
+
+void WorkflowsConf::onRecordingChanged()
+{
+    if (m_updating) {
+        return;
+    }
+    ConfigHandler config;
+    config.setGifFps(m_gifFps->value());
+    config.setGifMaxWidth(m_gifMaxWidth->value());
+}
+
 void WorkflowsConf::onEffectChanged()
 {
     if (m_updating) {
@@ -198,6 +254,20 @@ void WorkflowsConf::updateComponents()
     m_borderColorValue = config.effectBorderColor();
     m_cornerRadius->setValue(config.effectCornerRadius());
     m_shadow->setChecked(config.effectShadow());
+    for (auto it = m_recordShortcuts.begin(); it != m_recordShortcuts.end();
+         ++it) {
+        const QString sequence = config.shortcut(it.key());
+        const QString name = it.key() == QLatin1String("RECORD_MP4")
+                               ? tr("Record MP4")
+                               : tr("Record GIF");
+        it.value()->setText(
+          tr("%1 shortcut: %2")
+            .arg(name, sequence.isEmpty() ? tr("not set") : sequence));
+    }
+    if (m_gifFps != nullptr) {
+        m_gifFps->setValue(config.gifFps());
+        m_gifMaxWidth->setValue(config.gifMaxWidth());
+    }
     m_updating = false;
     updatePreview();
 }

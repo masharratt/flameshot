@@ -29,6 +29,14 @@ public:
         ACCEPT_ON_SELECT = 64,
     };
 
+    // Set on requests that only pick an area to record. No image is saved.
+    enum RecordMode
+    {
+        RecordNone,
+        RecordMp4,
+        RecordGif,
+    };
+
     CaptureRequest(CaptureMode mode,
                    const uint delay = 0,
                    QVariant data = QVariant(),
@@ -49,6 +57,7 @@ public:
     QRect capturedGlobalRect() const;
     // Name of the hotkey that started this request ("" for CLI and editor).
     QString workflow() const;
+    RecordMode recordMode() const;
 
     void addTask(ExportTask task);
     void removeTask(ExportTask task);
@@ -65,6 +74,7 @@ public:
     // When set, the after-capture actions configured for this hotkey replace
     // the SAVE and COPY tasks.
     void setWorkflow(const QString& workflow);
+    void setRecordMode(RecordMode mode);
     void setSelectedMonitor(int monitorIndex);
     int selectedMonitor() const;
     bool hasSelectedMonitor() const;
@@ -81,6 +91,7 @@ private:
     bool m_captureFirst = false;
     QRect m_capturedGlobalRect;
     QString m_workflow;
+    RecordMode m_recordMode = RecordNone;
     int m_selectedMonitor;
     bool m_hasSelectedMonitor;
 

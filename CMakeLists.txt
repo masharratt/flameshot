@@ -53,6 +53,8 @@ endif()
 # This can be read from ${PROJECT_NAME} after project() is called
 if(APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
+  # Screen recording uses Objective-C++ (ScreenCaptureKit, AVFoundation)
+  enable_language(OBJCXX)
 endif()
 
 

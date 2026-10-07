@@ -6,6 +6,10 @@ target_sources(flameshot PRIVATE
     hotkeyutils.h
     flameshotdaemon.h
     qguiappcurrentscreen.h
+    gifplan.h
+    recordingcontroller.h
+    recordinggeometry.h
+    recordingstate.h
 )
 
 target_sources(flameshot PRIVATE
@@ -13,6 +17,10 @@ target_sources(flameshot PRIVATE
     actionrunner.cpp
     capturefirstrequest.cpp
     capturerequest.cpp
+    gifplan.cpp
+    recordingcontroller.cpp
+    recordinggeometry.cpp
+    recordingstate.cpp
     flameshot.cpp
     flameshotdaemon.cpp
     hotkeyutils.cpp

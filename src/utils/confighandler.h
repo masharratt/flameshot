@@ -148,6 +148,8 @@ public:
     CONFIG_GETTER_SETTER(effectCornerRadius, setEffectCornerRadius, int)
     CONFIG_GETTER_SETTER(effectShadow, setEffectShadow, bool)
     CONFIG_GETTER_SETTER(captureHistoryMax, setCaptureHistoryMax, int)
+    CONFIG_GETTER_SETTER(gifFps, setGifFps, int)
+    CONFIG_GETTER_SETTER(gifMaxWidth, setGifMaxWidth, int)
     CONFIG_GETTER_SETTER(actionsTakeScreenshot,
                          setActionsTakeScreenshot,
                          QStringList)

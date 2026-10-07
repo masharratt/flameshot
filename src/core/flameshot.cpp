@@ -49,6 +49,8 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "core/capturefirstrequest.h"
 #include "core/hotkeyutils.h"
 #include "core/qguiappcurrentscreen.h"
+#include "core/recordingcontroller.h"
+#include "platform/screenrecorder.h"
 #include "utils/abstractlogger.h"
 #include "utils/capturehistory.h"
 #include "utils/confighandler.h"
@@ -110,6 +112,42 @@ Flameshot::Flameshot()
                 }
             });
 
+    // Screen recording: the controller asks for the area picker and reports
+    // the saved file, which is recorded in the history and shown in a toast.
+    m_recording = new RecordingController(this);
+    connect(m_recording,
+            &RecordingController::pickRequested,
+            this,
+            [this](CaptureRequest::RecordMode mode) {
+                if (gui(buildRecordRequest(mode)) == nullptr) {
+                    m_recording->pickAbandoned();
+                }
+            });
+    connect(this,
+            &Flameshot::captureFailed,
+            m_recording,
+            &RecordingController::pickAbandoned);
+    connect(m_recording,
+            &RecordingController::recordingSaved,
+            this,
+            &Flameshot::recordingSaved);
+    connect(this,
+            &Flameshot::recordingSaved,
+            this,
+            [](const QString& path, const QString& kind, const QSize& size) {
+                CaptureHistory history(CaptureHistory::defaultIndexPath());
+                HistoryEntry entry;
+                entry.timestamp = QDateTime::currentDateTimeUtc();
+                entry.path = path;
+                entry.size = size;
+                entry.kind = kind;
+                if (history.append(entry)) {
+                    history.trimTo(ConfigHandler().captureHistoryMax());
+                }
+                CaptureToast::showForRecording(
+                  path, kind, ConfigHandler().captureToastSeconds());
+            });
+
 #if defined(Q_OS_MACOS)
     // Request Screen Recording permission via the proper CoreGraphics API
     if (!CGPreflightScreenCaptureAccess()) {
@@ -141,6 +179,9 @@ QStringList globalHotkeyNames()
 #if defined(Q_OS_MACOS)
     names << QStringLiteral("SCREENSHOT_HISTORY");
 #endif
+    if (screenRecordingSupported()) {
+        names << QStringLiteral("RECORD_MP4") << QStringLiteral("RECORD_GIF");
+    }
     return names;
 }
 
@@ -201,6 +242,12 @@ void Flameshot::onHotkeyActivated(const QString& name)
         return;
     }
 
+    const CaptureRequest::RecordMode recordMode = recordModeForHotkey(name);
+    if (recordMode != CaptureRequest::RecordNone) {
+        toggleRecording(recordMode);
+        return;
+    }
+
     ConfigHandler config;
     // A hotkey with a workflow always runs its actions; TAKE_SCREENSHOT keeps
     // honouring the capture-first switch.
@@ -214,6 +261,14 @@ void Flameshot::onHotkeyActivated(const QString& name)
     }
 }
 #endif
+
+void Flameshot::toggleRecording(CaptureRequest::RecordMode mode)
+{
+    if (!screenRecordingSupported()) {
+        return;
+    }
+    m_recording->trigger(mode);
+}
 
 Flameshot* Flameshot::instance()
 {
@@ -701,6 +756,11 @@ void Flameshot::exportCapture(const QPixmap& capture,
                               const CaptureRequest& req)
 {
     using CR = CaptureRequest;
+    if (req.recordMode() != CR::RecordNone) {
+        // Area pick for a recording: nothing is exported as an image
+        m_recording->areaPicked(req.capturedGlobalRect());
+        return;
+    }
     int tasks = req.tasks(), mode = req.captureMode();
     QString path = req.path();
 

@@ -1,6 +1,6 @@
 # Feature Status (masharratt/flameshot fork)
 
-**Last Updated:** 2026-10-06 (image effects added)
+**Last Updated:** 2026-10-07 (GIF and MP4 recording added)
 
 | Token | Meaning |
 |-------|---------|
@@ -22,4 +22,4 @@ Plan: `planning/PLAN_sharex_fork.md` (local, not committed).
 | Per-hotkey after-capture actions | beta | TAKE_SCREENSHOT and CAPTURE_AND_EDIT each run a configurable action list (save, copy image, copy path, open editor, pin, effects, toast) set on the Workflows tab. Hotkeys re-register live when changed. | Capture-first workflow | Not yet checked by hand. |
 | Image effects | beta | Border, rounded corners and drop shadow applied by the Apply Effects action, configured with a live preview on the Workflows tab. | Per-hotkey actions | Not yet checked by hand. Effects needing transparency save as PNG only on the workflow save path. |
 | Ruler tool | beta | Editor tool that draws a measured line labelled with length and width x height in physical pixels. | Tool system | Not yet checked by hand in the running app. |
-| GIF / MP4 recording | stub | Record a screen region to MP4 or GIF. | ScreenCaptureKit, AVFoundation | Not started. |
+| GIF / MP4 recording | dev | RECORD_MP4 and RECORD_GIF hotkeys (and tray items) pick an area, record it with ScreenCaptureKit, and save MP4 or GIF with a history entry and toast. Options `gifFps`, `gifMaxWidth` on the Workflows tab. | macOS 15+, ScreenCaptureKit, AVFoundation, ImageIO | Builds; never run. macOS 15+ only, hidden elsewhere. No audio. |

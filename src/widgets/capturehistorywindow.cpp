@@ -4,6 +4,7 @@
 #include "core/capturefirstrequest.h"
 #include "core/flameshot.h"
 #include "core/flameshotdaemon.h"
+#include "platform/videothumbnail.h"
 
 #include <QCursor>
 #include <QDesktopServices>
@@ -26,6 +27,12 @@ const int kChunkSize = 4;
 const int kPathRole = Qt::UserRole;
 const int kLoadedRole = Qt::UserRole + 1;
 const int kMissingRole = Qt::UserRole + 2;
+const int kKindRole = Qt::UserRole + 3;
+
+bool isRecordingKind(const QString& kind)
+{
+    return kind == QLatin1String("mp4") || kind == QLatin1String("gif");
+}
 } // namespace
 
 QPointer<CaptureHistoryWindow> CaptureHistoryWindow::s_instance;
@@ -126,6 +133,7 @@ void CaptureHistoryWindow::reload()
         auto* item = new QListWidgetItem(m_list);
         item->setData(kPathRole, e.path);
         item->setData(kLoadedRole, false);
+        item->setData(kKindRole, e.kind);
         item->setToolTip(e.path);
         const QString when =
           e.timestamp.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm"));
@@ -177,14 +185,22 @@ void CaptureHistoryWindow::loadNextChunk()
     for (int n = 0; n < kChunkSize && n < todo.size(); ++n) {
         QListWidgetItem* item = todo[n];
         item->setData(kLoadedRole, true);
-        QImageReader reader(item->data(kPathRole).toString());
-        reader.setAutoTransform(true);
-        const QSize orig = reader.size();
-        if (orig.isValid()) {
-            reader.setScaledSize(
-              orig.scaled(kThumb * dpr, Qt::KeepAspectRatio));
+        QImage img;
+        if (item->data(kKindRole).toString() == QLatin1String("mp4")) {
+            // First frame of the video
+            img = videoFirstFrame(item->data(kPathRole).toString(),
+                                  kThumb * dpr);
+        } else {
+            // Images and GIFs (a static first frame) decode the same way
+            QImageReader reader(item->data(kPathRole).toString());
+            reader.setAutoTransform(true);
+            const QSize orig = reader.size();
+            if (orig.isValid()) {
+                reader.setScaledSize(
+                  orig.scaled(kThumb * dpr, Qt::KeepAspectRatio));
+            }
+            img = reader.read();
         }
-        QImage img = reader.read();
         if (img.isNull()) {
             item->setIcon(QIcon(placeholder(tr("unreadable"))));
             continue;
@@ -209,7 +225,9 @@ void CaptureHistoryWindow::updateButtons()
     const bool has = item != nullptr;
     const bool usable = has && !item->data(kMissingRole).toBool();
     m_openButton->setEnabled(usable);
-    m_editButton->setEnabled(usable);
+    // Recordings cannot be edited; Copy puts their path on the clipboard
+    m_editButton->setEnabled(
+      usable && !isRecordingKind(item->data(kKindRole).toString()));
     m_copyButton->setEnabled(usable);
     m_finderButton->setEnabled(usable);
     m_removeButton->setEnabled(has);
@@ -266,7 +284,12 @@ void CaptureHistoryWindow::copyCurrent()
     if (!item || item->data(kMissingRole).toBool()) {
         return;
     }
-    const QPixmap pixmap(item->data(kPathRole).toString());
+    const QString path = item->data(kPathRole).toString();
+    if (isRecordingKind(item->data(kKindRole).toString())) {
+        FlameshotDaemon::copyToClipboard(path, tr("Path copied to clipboard."));
+        return;
+    }
+    const QPixmap pixmap(path);
     if (!pixmap.isNull()) {
         FlameshotDaemon::copyToClipboard(pixmap);
     }

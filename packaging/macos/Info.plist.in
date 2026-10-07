@@ -24,6 +24,8 @@
     <string>6.0</string>
     <key>LSMinimumSystemVersion</key>
     <string>${CMAKE_OSX_DEPLOYMENT_TARGET}</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Flameshot needs to record your screen to take screenshots and screen recordings.</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>LSUIElement</key>
