@@ -2,6 +2,7 @@
 
 #include "capturehistory.h"
 
+#include <QSet>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -120,7 +121,17 @@ QList<HistoryEntry> CaptureHistory::entries() const
 {
     QList<HistoryEntry> list = load();
     std::reverse(list.begin(), list.end());
-    return list;
+    // A file saved again (for example after Edit) is listed once, at the
+    // position of its newest save.
+    QSet<QString> seen;
+    QList<HistoryEntry> unique;
+    for (const HistoryEntry& e : list) {
+        if (!seen.contains(e.path)) {
+            seen.insert(e.path);
+            unique.append(e);
+        }
+    }
+    return unique;
 }
 
 bool CaptureHistory::remove(const QString& path)

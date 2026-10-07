@@ -114,6 +114,11 @@ void CaptureRequest::removeTask(ExportTask task)
 void CaptureRequest::addSaveTask(const QString& path)
 {
     m_tasks |= SAVE;
+    // An edit of a saved capture must keep overwriting that file, even when
+    // the editor's Save tool asks for a save without a path.
+    if (path.isEmpty() && m_overwriteExisting && !m_path.isEmpty()) {
+        return;
+    }
     m_path = path;
 }
 

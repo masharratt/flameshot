@@ -181,6 +181,27 @@ private slots:
           buildCaptureFirstRequest("TAKE_SCREENSHOT", "/a", "/b").recordMode(),
           CaptureRequest::RecordNone);
     }
+
+    // Regression: pressing Save in the editor opened from Edit called
+    // addSaveTask() with no path, which wiped the original file path, so a
+    // second numbered copy was saved instead of overwriting the original.
+    void editorSaveKeepsOverwriteTarget()
+    {
+        CaptureRequest r(CaptureRequest::GRAPHICAL_MODE);
+        r.addSaveTask("/pics/shot.png");
+        r.setOverwriteExisting(true);
+        r.addSaveTask();
+        QCOMPARE(r.path(), QString("/pics/shot.png"));
+        QVERIFY(r.tasks() & CaptureRequest::SAVE);
+    }
+
+    void plainSaveTaskStillClearsPath()
+    {
+        CaptureRequest r(CaptureRequest::GRAPHICAL_MODE);
+        r.addSaveTask("/pics/shot.png");
+        r.addSaveTask();
+        QCOMPARE(r.path(), QString());
+    }
 };
 
 QTEST_GUILESS_MAIN(TestCaptureFirstRequest)

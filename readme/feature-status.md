@@ -1,6 +1,6 @@
 # Feature Status (masharratt/flameshot fork)
 
-**Last Updated:** 2026-10-07 (GIF and MP4 recording added)
+**Last Updated:** 2026-10-07 (fixed duplicate saves and history entries after Edit)
 
 | Token | Meaning |
 |-------|---------|

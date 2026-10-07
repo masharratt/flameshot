@@ -58,6 +58,23 @@ private slots:
         QCOMPARE(list[2].path, QStringLiteral("/tmp/1.png"));
     }
 
+    // Regression: editing a capture saves the same file again, which added a
+    // second history entry, so the history window showed duplicates.
+    void resavedPathShowsOnceAtNewestPosition()
+    {
+        QTemporaryDir dir;
+        const QString index = dir.filePath("history.jsonl");
+        CaptureHistory h(index);
+        QVERIFY(h.append(entry("/tmp/1.png", 1000)));
+        QVERIFY(h.append(entry("/tmp/2.png", 2000)));
+        QVERIFY(h.append(entry("/tmp/1.png", 3000)));
+        const auto list = CaptureHistory(index).entries();
+        QCOMPARE(list.size(), 2);
+        QCOMPARE(list[0].path, QStringLiteral("/tmp/1.png"));
+        QCOMPARE(list[0].timestamp.toMSecsSinceEpoch(), qint64(3000));
+        QCOMPARE(list[1].path, QStringLiteral("/tmp/2.png"));
+    }
+
     void corruptLineSkippedAndCounted()
     {
         QTemporaryDir dir;
