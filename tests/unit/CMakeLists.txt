@@ -1,0 +1,21 @@
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Test)
+
+set(CMAKE_AUTOMOC ON)
+
+# flameshot_add_unit_test(<name> SOURCES <files under src/...> [LIBS <libs>])
+# Builds tests/unit/<name>.cpp together with the listed production sources
+# and registers it with CTest. Tests link only what they exercise.
+function(flameshot_add_unit_test name)
+  cmake_parse_arguments(ARG "" "" "SOURCES;LIBS" ${ARGN})
+  set(prod_sources "")
+  foreach(src IN LISTS ARG_SOURCES)
+    list(APPEND prod_sources "${CMAKE_SOURCE_DIR}/src/${src}")
+  endforeach()
+  add_executable(${name} ${name}.cpp ${prod_sources})
+  target_include_directories(${name} PRIVATE "${CMAKE_SOURCE_DIR}/src")
+  target_link_libraries(${name} PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test ${ARG_LIBS})
+  add_test(NAME ${name} COMMAND ${name})
+  set_tests_properties(${name} PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endfunction()
+
+flameshot_add_unit_test(tst_strfparse SOURCES utils/strfparse.cpp)

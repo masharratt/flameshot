@@ -151,6 +151,13 @@ endif()
 
 add_subdirectory(src)
 
+# Fork: unit tests (QtTest), registered with CTest
+option(BUILD_TESTING "Build unit tests" ON)
+if(BUILD_TESTING)
+  enable_testing()
+  add_subdirectory(tests/unit)
+endif()
+
 # CPack
 set(CPACK_PACKAGE_VENDOR "flameshot-org")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Powerful yet simple to use screenshot software.")
