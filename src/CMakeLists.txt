@@ -450,6 +450,15 @@ if (APPLE)
 # Code signing settings - optional, set to empty string to skip signing
     set(CODE_SIGN_IDENTITY "" CACHE STRING "Code signing identity (leave empty to skip signing)")
     set(DMG_SIGN_IDENTITY "" CACHE STRING "DMG signing identity (leave empty to skip signing)")
+    # A self-signed local certificate has no Team ID, so the hardened runtime's
+    # library validation refuses to load the bundled Qt frameworks. Turn this
+    # off when CODE_SIGN_IDENTITY is a local certificate rather than a Developer ID.
+    option(CODE_SIGN_HARDENED_RUNTIME "Sign with hardened runtime and timestamp (Developer ID only)" ON)
+    if(CODE_SIGN_HARDENED_RUNTIME)
+        set(CODE_SIGN_EXTRA_FLAGS --options runtime --timestamp)
+    else()
+        set(CODE_SIGN_EXTRA_FLAGS "")
+    endif()
     # Custom target to create DMG (signed or unsigned)
     add_custom_target(create_dmg
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../packaging/macos/create_dmg.sh 
@@ -468,7 +477,7 @@ if (APPLE)
         # Identity-based signing (requires Developer ID)
         add_custom_command(TARGET flameshot POST_BUILD
             COMMAND codesign --force --deep --sign "${CODE_SIGN_IDENTITY}" 
-                    --options runtime --timestamp "$<TARGET_BUNDLE_DIR:flameshot>"
+                    ${CODE_SIGN_EXTRA_FLAGS} "$<TARGET_BUNDLE_DIR:flameshot>"
             COMMENT "Code signing app bundle with ${CODE_SIGN_IDENTITY}"
         )
     else()
@@ -491,7 +500,7 @@ if (APPLE)
        if(CODE_SIGN_IDENTITY AND NOT CODE_SIGN_IDENTITY STREQUAL "")
            add_custom_command(TARGET flameshot POST_BUILD
                COMMAND codesign --force --deep --sign "${CODE_SIGN_IDENTITY}" 
-                       --options runtime --timestamp "$<TARGET_BUNDLE_DIR:flameshot>"
+                       ${CODE_SIGN_EXTRA_FLAGS} "$<TARGET_BUNDLE_DIR:flameshot>"
                COMMENT "Re-signing app bundle after Qt deployment"
            )
        else()
