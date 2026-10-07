@@ -10,6 +10,7 @@ target_sources(
 
         capturelauncher.h
         capturetoast.h
+        capturehistorywindow.h
         toaststack.h
         draggablewidgetmaker.h
         imagelabel.h
@@ -40,6 +41,7 @@ target_sources(
         PRIVATE
         capturelauncher.cpp
         capturetoast.cpp
+        capturehistorywindow.cpp
         toaststack.cpp
         draggablewidgetmaker.cpp
         imagelabel.cpp

@@ -44,3 +44,13 @@ EditGeometry editGeometry(const QRect& globalLogical,
                        qRound(local.height() * devicePixelRatio));
     return { local, device };
 }
+
+bool editKeepsOriginalPixels(const QSize& imagePixels,
+                             const QSize& logicalSize,
+                             qreal devicePixelRatio)
+{
+    return qRound(logicalSize.width() * devicePixelRatio) ==
+             imagePixels.width() &&
+           qRound(logicalSize.height() * devicePixelRatio) ==
+             imagePixels.height();
+}

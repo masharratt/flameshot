@@ -48,10 +48,12 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "core/capturefirstrequest.h"
 #include "core/qguiappcurrentscreen.h"
 #include "utils/abstractlogger.h"
+#include "utils/capturehistory.h"
 #include "utils/confighandler.h"
 #include "utils/screengrabber.h"
 #include "utils/screenshotsaver.h"
 #include "widgets/capture/capturewidget.h"
+#include "widgets/capturehistorywindow.h"
 #include "widgets/capturelauncher.h"
 #include "widgets/capturetoast.h"
 #include "widgets/infowindow.h"
@@ -64,6 +66,7 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #endif
 
 #include <QApplication>
+#include <QDateTime>
 #include <QBuffer>
 #include <QDebug>
 #include <QDesktopServices>
@@ -87,7 +90,7 @@ Flameshot::Flameshot()
 #if (defined(Q_OS_MACOS) || defined(Q_OS_WIN))
   , m_HotkeyScreenshotCapture(nullptr)
 #endif
-#if (defined(Q_OS_MACOS) && ENABLE_IMGUR)
+#if defined(Q_OS_MACOS)
   , m_HotkeyScreenshotHistory(nullptr)
 #endif
 {
@@ -109,6 +112,22 @@ Flameshot::Flameshot()
                                           selection,
                                           globalRect,
                                           config.captureToastSeconds());
+                }
+            });
+
+    // Every successful save is recorded in the capture history
+    connect(this,
+            &Flameshot::captureSaved,
+            this,
+            [](const QString& path, const QPixmap& capture) {
+                CaptureHistory history(CaptureHistory::defaultIndexPath());
+                HistoryEntry entry;
+                entry.timestamp = QDateTime::currentDateTimeUtc();
+                entry.path = path;
+                entry.size = capture.size();
+                entry.kind = QStringLiteral("image");
+                if (history.append(entry)) {
+                    history.trimTo(ConfigHandler().captureHistoryMax());
                 }
             });
 
@@ -136,13 +155,19 @@ Flameshot::Flameshot()
                          }
                      });
 #endif
-#if (defined(Q_OS_MACOS) && ENABLE_IMGUR)
+#if defined(Q_OS_MACOS)
     m_HotkeyScreenshotHistory = new QHotkey(
       QKeySequence(ConfigHandler().shortcut("SCREENSHOT_HISTORY")), true, this);
     QObject::connect(m_HotkeyScreenshotHistory,
                      &QHotkey::activated,
                      qApp,
-                     [this]() { history(); });
+                     [this]() {
+#if ENABLE_IMGUR
+                         history();
+#else
+                         CaptureHistoryWindow::showWindow();
+#endif
+                     });
 #endif
 }
 
@@ -573,7 +598,8 @@ void Flameshot::exportCapture(const QPixmap& capture,
 
 void Flameshot::editSavedCapture(const QString& path,
                                  const QPixmap& capture,
-                                 const QRect& globalRect)
+                                 const QRect& globalRect,
+                                 bool overwrite)
 {
     QScreen* screen = QGuiApplication::screenAt(globalRect.center());
     if (!screen) {
@@ -595,7 +621,7 @@ void Flameshot::editSavedCapture(const QString& path,
     req.setPresetScreenshot(backdrop);
     req.setInitialSelection(geo.initialSelectionDevice);
     req.addSaveTask(path);
-    req.setOverwriteExisting(true);
+    req.setOverwriteExisting(overwrite);
     gui(req);
 }
 

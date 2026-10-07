@@ -82,10 +82,12 @@ signals:
 
 public slots:
     void requestCapture(const CaptureRequest& request);
-    // Reopen a saved capture in the editor; saving overwrites the same file.
+    // Reopen a saved capture in the editor. Saving overwrites the same file
+    // when overwrite is true, otherwise it saves a numbered copy beside it.
     void editSavedCapture(const QString& path,
                           const QPixmap& capture,
-                          const QRect& globalRect);
+                          const QRect& globalRect,
+                          bool overwrite = true);
     void exportCapture(const QPixmap& p,
                        QRect& selection,
                        const CaptureRequest& req);
@@ -116,7 +118,7 @@ private:
 #if (defined(Q_OS_MACOS) || defined(Q_OS_WIN))
     QHotkey* m_HotkeyScreenshotCapture;
 #endif
-#if (defined(Q_OS_MACOS) && ENABLE_IMGUR)
+#if defined(Q_OS_MACOS)
     QHotkey* m_HotkeyScreenshotHistory;
 #endif
 };

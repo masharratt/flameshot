@@ -38,3 +38,10 @@ struct EditGeometry
 EditGeometry editGeometry(const QRect& globalLogical,
                           const QRect& screenGeometry,
                           qreal devicePixelRatio);
+
+// True when an image of imagePixels shown in the editor at logicalSize on a
+// screen with devicePixelRatio maps one to one onto its pixels, so saving the
+// edit may overwrite the original file without resampling it.
+bool editKeepsOriginalPixels(const QSize& imagePixels,
+                             const QSize& logicalSize,
+                             qreal devicePixelRatio);

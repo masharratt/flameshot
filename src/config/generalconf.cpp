@@ -48,6 +48,7 @@ GeneralConf::GeneralConf(QWidget* parent)
     initCaptureFirst();
     initHoverWindowDetection();
     initCaptureToastSeconds();
+    initCaptureHistoryMax();
     initShowHelp();
     initShowSidePanelButton();
     initUseJpgForClipboard();
@@ -119,6 +120,7 @@ void GeneralConf::_updateComponents(bool allowEmptySavePath)
     m_captureFirst->setChecked(config.captureFirst());
     m_hoverWindowDetection->setChecked(config.hoverWindowDetection());
     m_captureToastSeconds->setValue(config.captureToastSeconds());
+    m_captureHistoryMax->setValue(config.captureHistoryMax());
     m_reverseArrow->setChecked(config.reverseArrow());
     m_drawCircleCounterOutline->setChecked(config.drawCircleCounterOutline());
     m_autoCloseIdleDaemon->setChecked(config.autoCloseIdleDaemon());
@@ -164,6 +166,11 @@ void GeneralConf::captureFirst(bool checked)
 void GeneralConf::hoverWindowDetection(bool checked)
 {
     ConfigHandler().setHoverWindowDetection(checked);
+}
+
+void GeneralConf::captureHistoryMax(int max)
+{
+    ConfigHandler().setCaptureHistoryMax(max);
 }
 
 void GeneralConf::captureToastSeconds(int seconds)
@@ -333,6 +340,32 @@ void GeneralConf::initHoverWindowDetection()
             &QCheckBox::clicked,
             this,
             &GeneralConf::hoverWindowDetection);
+}
+
+void GeneralConf::initCaptureHistoryMax()
+{
+    auto* box = new QGroupBox(tr("Capture history size"));
+    box->setFlat(true);
+    box->setToolTip(tr("Maximum number of captures remembered in the capture "
+                       "history. Image files are never deleted."));
+    m_layout->addWidget(box);
+
+    auto* vboxLayout = new QVBoxLayout();
+    box->setLayout(vboxLayout);
+
+    m_captureHistoryMax = new QSpinBox(this);
+    m_captureHistoryMax->setMinimum(1);
+    m_captureHistoryMax->setMaximum(100000);
+    QString foreground = this->palette().windowText().color().name();
+    m_captureHistoryMax->setStyleSheet(
+      QStringLiteral("color: %1").arg(foreground));
+
+    connect(m_captureHistoryMax,
+            static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+            this,
+            &GeneralConf::captureHistoryMax);
+
+    vboxLayout->addWidget(m_captureHistoryMax);
 }
 
 void GeneralConf::initCaptureToastSeconds()

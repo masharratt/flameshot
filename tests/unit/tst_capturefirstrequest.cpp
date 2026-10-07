@@ -124,6 +124,16 @@ private slots:
         r.setCapturedGlobalRect(QRect(1, 2, 3, 4));
         QCOMPARE(r.capturedGlobalRect(), QRect(1, 2, 3, 4));
     }
+
+    // Regression: editing a history image that had to be resized for the
+    // editor overwrote the original with the resized copy.
+    void overwriteOnlyWhenEditorKeepsEveryPixel()
+    {
+        QVERIFY(editKeepsOriginalPixels(QSize(400, 200), QSize(200, 100), 2.0));
+        QVERIFY(!editKeepsOriginalPixels(QSize(4000, 2000), QSize(1440, 720), 2.0));
+        QVERIFY(!editKeepsOriginalPixels(QSize(401, 200), QSize(201, 100), 2.0));
+        QVERIFY(editKeepsOriginalPixels(QSize(300, 150), QSize(300, 150), 1.0));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestCaptureFirstRequest)

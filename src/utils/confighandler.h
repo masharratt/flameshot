@@ -142,6 +142,7 @@ public:
     CONFIG_GETTER_SETTER(captureFirst, setCaptureFirst, bool)
     CONFIG_GETTER_SETTER(hoverWindowDetection, setHoverWindowDetection, bool)
     CONFIG_GETTER_SETTER(captureToastSeconds, setCaptureToastSeconds, int)
+    CONFIG_GETTER_SETTER(captureHistoryMax, setCaptureHistoryMax, int)
     CONFIG_GETTER_SETTER(showSelectionGeometry, setShowSelectionGeometry, int)
     CONFIG_GETTER_SETTER(jpegQuality, setJpegQuality, int)
     CONFIG_GETTER_SETTER(reverseArrow, setReverseArrow, bool)

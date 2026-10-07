@@ -6,6 +6,7 @@
 #include "core/qguiappcurrentscreen.h"
 #include "utils/confighandler.h"
 #include "utils/globalvalues.h"
+#include "widgets/capturehistorywindow.h"
 
 #include <QApplication>
 #include <QGuiApplication>
@@ -186,6 +187,11 @@ void TrayIcon::initMenu()
             Flameshot::instance(),
             &Flameshot::history);
 #endif
+    auto* captureHistoryAction = new QAction(tr("Capture &History"), this);
+    connect(captureHistoryAction,
+            &QAction::triggered,
+            this,
+            []() { CaptureHistoryWindow::showWindow(); });
     auto* openSavePathAction = new QAction(tr("&Open Save Path"), this);
     connect(openSavePathAction,
             &QAction::triggered,
@@ -198,6 +204,7 @@ void TrayIcon::initMenu()
 #ifdef ENABLE_IMGUR
     m_menu->addAction(recentAction);
 #endif
+    m_menu->addAction(captureHistoryAction);
     m_menu->addAction(openSavePathAction);
     m_menu->addSeparator();
     m_menu->addAction(configAction);

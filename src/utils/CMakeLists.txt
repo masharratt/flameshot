@@ -25,6 +25,7 @@ target_sources(
           pathinfo.cpp
           colorutils.cpp
           history.cpp
+          capturehistory.cpp
           strfparse.cpp
 )
 

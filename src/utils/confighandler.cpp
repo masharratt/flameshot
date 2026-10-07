@@ -106,6 +106,7 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("captureFirst"                ,Bool               ( true          )),
     OPTION("hoverWindowDetection"        ,Bool               ( true          )),
     OPTION("captureToastSeconds"         ,LowerBoundedInt    ( 0, 6          )),
+    OPTION("captureHistoryMax"           ,LowerBoundedInt    ( 1, 500        )),
     OPTION("uploadHistoryMax"            ,LowerBoundedInt    ( 0, 25         )),
     OPTION("undoLimit"                   ,BoundedInt         ( 0, 999, 100   )),
     // Interface tab
@@ -207,7 +208,7 @@ static QMap<QString, QSharedPointer<KeySequence>> recognizedShortcuts = {
 #if defined(Q_OS_MACOS)
     SHORTCUT("TYPE_DELETE_CURRENT_TOOL" ,   "Backspace"             ),
     SHORTCUT("TAKE_SCREENSHOT"          ,   "Ctrl+Shift+X"          ),
-    SHORTCUT("SCREENSHOT_HISTORY"       ,   "Alt+Shift+X"           ),
+    SHORTCUT("SCREENSHOT_HISTORY"       ,   "Ctrl+Shift+Y"          ),
 #else
     SHORTCUT("TYPE_DELETE_CURRENT_TOOL" ,   "Delete"                ),
 #endif
