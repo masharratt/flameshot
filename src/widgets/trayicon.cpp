@@ -223,6 +223,24 @@ void TrayIcon::initMenu()
 
     m_menu->addAction(m_captureAction);
     m_menu->addAction(m_launcherAction);
+#if defined(Q_OS_MACOS)
+    // Editor windows hide when the app is deactivated; this brings them back
+    m_showEditorsAction = new QAction(tr("Show &Edit Windows"), this);
+    m_showEditorsAction->setEnabled(
+      Flameshot::instance()->hasHiddenEditorWindows());
+    connect(m_showEditorsAction,
+            &QAction::triggered,
+            Flameshot::instance(),
+            &Flameshot::showEditorWindows);
+    connect(Flameshot::instance(),
+            &Flameshot::hiddenEditorsChanged,
+            this,
+            [this]() {
+                m_showEditorsAction->setEnabled(
+                  Flameshot::instance()->hasHiddenEditorWindows());
+            });
+    m_menu->addAction(m_showEditorsAction);
+#endif
     m_menu->addActions(m_recordActions);
     m_menu->addSeparator();
 #ifdef ENABLE_IMGUR

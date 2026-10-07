@@ -34,3 +34,5 @@ flameshot_add_unit_test(tst_recordinggeometry SOURCES core/recordinggeometry.cpp
 flameshot_add_unit_test(tst_pickerstyle SOURCES widgets/capture/pickerstyle.cpp core/capturerequest.cpp)
 flameshot_add_unit_test(tst_editcanvas SOURCES widgets/editcanvas.cpp)
 flameshot_add_unit_test(tst_editorsettings SOURCES widgets/editorsettings.cpp)
+flameshot_add_unit_test(tst_curvemath SOURCES tools/curvemath.cpp)
+flameshot_add_unit_test(tst_editorvisibility SOURCES widgets/editorvisibility.cpp)

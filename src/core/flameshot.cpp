@@ -58,6 +58,8 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "utils/screengrabber.h"
 #include "utils/screenshotsaver.h"
 #include "widgets/capture/capturewidget.h"
+#include "platform/windowspace.h"
+#include "widgets/editorvisibility.h"
 #include "widgets/editorwindow.h"
 #include "widgets/capturehistorywindow.h"
 #include "widgets/capturelauncher.h"
@@ -111,6 +113,23 @@ Flameshot::Flameshot()
                 if (history.append(entry)) {
                     history.trimTo(ConfigHandler().captureHistoryMax());
                 }
+            });
+
+    // Editor windows hide when the user switches to another app. A modal
+    // dialog of ours (such as the colour dialog) keeps them in place.
+    connect(qApp,
+            &QGuiApplication::applicationStateChanged,
+            this,
+            [this](Qt::ApplicationState state) {
+                if (shouldHideEditors(state,
+                                      QApplication::activeModalWidget())) {
+                    hideEditorWindows();
+                } else if (shouldReshowEditors(state,
+                                               hasHiddenEditorWindows())) {
+                    // Back via Cmd+Tab, the Dock or the menu bar
+                    showEditorWindows();
+                }
+                updateEditorDockIcon();
             });
 
     // Screen recording: the controller asks for the area picker and reports
@@ -497,7 +516,7 @@ void Flameshot::onWindowVisibilityChanged(QWindow::Visibility newVisibility)
     if (newVisibility == QWindow::Hidden) {
         qw->setProperty(visibleInDockProperty, false);
         --m_dockIconVisibleCount;
-        if (m_dockIconVisibleCount == 0) {
+        if (m_dockIconVisibleCount == 0 && !m_editorDockIcon) {
             setActivationPolicyAccessory();
         }
     } else {
@@ -850,15 +869,81 @@ void Flameshot::exportCapture(const QPixmap& capture,
 
 void Flameshot::editSavedCapture(const QString& path, const QPixmap& capture)
 {
+    // A new Edit brings back editors hidden when the app was deactivated
+    showEditorWindows();
     auto* editor = new EditorWindow(path, capture);
     m_editorWindows.append(editor);
     connect(editor, &QObject::destroyed, this, [this]() {
         m_editorWindows.removeAll(nullptr);
+        m_hiddenEditors.removeAll(nullptr);
+        emit hiddenEditorsChanged();
+        updateEditorDockIcon();
     });
     // No showDockIcon() here: switching the app to a regular Dock app while
     // the user is in another app's full-screen Space makes macOS jump to the
-    // desktop Space instead of showing the editor where the user is.
+    // desktop Space instead of showing the editor where the user is. The
+    // Dock icon is added later, once the app is inactive
+    // (updateEditorDockIcon).
     editor->present();
+}
+
+void Flameshot::hideEditorWindows()
+{
+    for (const QPointer<EditorWindow>& editor : m_editorWindows) {
+        if (editor && editor->isVisible()) {
+            editor->hide();
+            m_hiddenEditors.append(editor);
+        }
+    }
+    if (!m_hiddenEditors.isEmpty()) {
+        emit hiddenEditorsChanged();
+    }
+}
+
+void Flameshot::showEditorWindows()
+{
+    const auto hidden = m_hiddenEditors;
+    m_hiddenEditors.clear();
+    for (const QPointer<EditorWindow>& editor : hidden) {
+        if (editor) {
+            showOnActiveSpace(editor);
+            editor->show();
+            editor->raise();
+        }
+    }
+    if (!hidden.isEmpty()) {
+        emit hiddenEditorsChanged();
+    }
+}
+
+void Flameshot::updateEditorDockIcon()
+{
+#if defined(Q_OS_MACOS)
+    m_editorWindows.removeAll(nullptr);
+    const bool want =
+      editorsWantDockIcon(static_cast<int>(m_editorWindows.size()),
+                          qApp->applicationState() == Qt::ApplicationActive,
+                          m_editorDockIcon);
+    if (want == m_editorDockIcon) {
+        return;
+    }
+    m_editorDockIcon = want;
+    if (want) {
+        setActivationPolicyRegular();
+    } else if (m_dockIconVisibleCount == 0) {
+        setActivationPolicyAccessory();
+    }
+#endif
+}
+
+bool Flameshot::hasHiddenEditorWindows() const
+{
+    for (const QPointer<EditorWindow>& editor : m_hiddenEditors) {
+        if (editor) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Flameshot::setExternalWidget(bool b)

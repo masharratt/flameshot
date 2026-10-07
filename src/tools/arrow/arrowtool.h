@@ -17,6 +17,7 @@ public:
     QIcon icon(const QColor& background, bool inEditor) const override;
     QString name() const override;
     QString description() const override;
+    bool supportsBend() const override { return true; }
     QRect boundingRect() const override;
     QWidget* configurationWidget() override;
 
@@ -34,6 +35,8 @@ private slots:
     void setArrowStyle(int style);
 
 private:
+    void processBent(QPainter& painter, const QPoint& start, const QPoint& tip);
+
     enum class ArrowStyle
     {
         Default = 0,

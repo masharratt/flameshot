@@ -48,6 +48,7 @@ target_sources(
         editorwindow.cpp
         editcanvas.cpp
         editorsettings.cpp
+        editorvisibility.cpp
         editorsettingsbar.cpp
         toaststack.cpp
         draggablewidgetmaker.cpp

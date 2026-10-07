@@ -33,6 +33,7 @@ private:
     QAction* m_launcherAction;
     QList<QAction*> m_recordActions;
     QAction* m_infoAction;
+    QAction* m_showEditorsAction{ nullptr };
 #if !defined(DISABLE_UPDATE_CHECKER)
     QAction* m_appUpdates;
 #endif

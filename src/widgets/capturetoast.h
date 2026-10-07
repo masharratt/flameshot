@@ -32,6 +32,7 @@ protected:
     void enterEvent(QEnterEvent* event) override;
     void leaveEvent(QEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     CaptureToast(const QString& path,
@@ -42,12 +43,15 @@ private:
                  bool recording = false);
 
     static void restack();
+    void openFromThumbnail();
 
     QString m_path;
     QPixmap m_capture;
     QRect m_selection;  // exportCapture units, used for pins
     QRect m_globalRect; // global logical points
     QTimer m_timer;
+    QWidget* m_thumb = nullptr;
+    bool m_recording = false;
 
     // Newest first, matching toastStackGeometry()
     static QList<QPointer<CaptureToast>> s_toasts;

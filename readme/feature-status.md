@@ -1,6 +1,6 @@
 # Feature Status (masharratt/flameshot fork)
 
-**Last Updated:** 2026-10-07 (editor settings bar)
+**Last Updated:** 2026-10-07 (bendable arrows, select tool, editor hide and Cmd+Tab)
 
 | Token | Meaning |
 |-------|---------|
@@ -25,3 +25,6 @@ Plan: `planning/PLAN_sharex_fork.md` (local, not committed).
 | GIF / MP4 recording | dev | RECORD_MP4 and RECORD_GIF hotkeys (and tray items) pick an area, record it with ScreenCaptureKit, and save MP4 or GIF with a history entry and toast. Options `gifFps`, `gifMaxWidth` on the Workflows tab. | macOS 15+, ScreenCaptureKit, AVFoundation, ImageIO | Builds; never run. macOS 15+ only, hidden elsewhere. No audio. |
 | Expand canvas | beta | Editor toolbar button that adds 40 pt of white space on every side so you can draw outside the image; drawings move with the image and Cmd+Z undoes it. | Windowed editor | Window grows but does not shrink on undo. No keyboard shortcut. |
 | Editor settings bar | beta | Second toolbar row in the windowed editor with colour swatches from the user palette, a custom colour button and a size slider, kept in sync with all other ways of changing them. | Windowed editor | Every size change is saved as the new default. |
+| Bendable arrows and lines | beta | Arrows and lines show a midpoint handle; dragging it bends them into a smooth curve with the arrowhead following the tangent. Undoable. | Tool system | No hover cursor on the handle. |
+| Editor select tool | beta | Pointer button (V) in the editor toolbar that turns drawing off so existing objects can be selected, moved, bent or re-edited. | Windowed editor | None known. |
+| Editor hide and Cmd+Tab | beta | Edit windows hide when another app is activated and return via Cmd+Tab, the Dock or the menu bar; a Dock icon appears only while editors are open and the app is in the background. Clicking the toast picture opens Edit. | Windowed editor | Opening the menu bar menu hides editors until the app is reactivated. |

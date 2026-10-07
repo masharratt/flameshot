@@ -28,6 +28,7 @@
 #include <QUndoStack>
 #include <QWidget>
 
+class AbstractTwoPointTool;
 class QLabel;
 class QPaintEvent;
 class QResizeEvent;
@@ -67,8 +68,13 @@ public slots:
     // Same effect as changing colour / size in the side panel
     void setDrawColor(const QColor& c);
     void applyToolSize(int size);
+    // Deactivate the current drawing tool so clicks select and move objects.
+    // No-op when no tool is active.
+    void deactivateTool();
 
 signals:
+    // The active drawing tool changed; false when none is active (select mode)
+    void toolActiveChanged(bool active);
     void colorChanged(const QColor& c);
     void toolSizeChanged(int size);
     // Windowed editor: the canvas grew or shrank (logical size)
@@ -180,6 +186,9 @@ private:
     void selectHoveredWindow();
     void drawToolsData(bool drawSelection = true);
     void drawObjectSelection();
+    AbstractTwoPointTool* bendableObjectWithHandleAt(const QPoint& pos);
+    void dragBendHandle(const QPoint& pos);
+    AbstractTwoPointTool* bendTarget();
 
     void processPixmapWithTool(QPixmap* pixmap, CaptureTool* tool);
 
@@ -222,6 +231,15 @@ private:
     QPointer<CaptureToolButton> m_activeButton;
     QPointer<CaptureTool> m_activeTool;
     bool m_activeToolIsMoved;
+    // True while the bend handle of the selected arrow/line is dragged
+    bool m_bendDragging = false;
+    // Index of the last arrow/line drawn, bendable while its tool is still
+    // active. An index, not a pointer: undo snapshots replace every object
+    // with a copy, which would leave a pointer stale.
+    int m_lastBendableIndex = -1;
+    // True while a bend handle is painted into m_context.screenshot; it must
+    // be cleared before the screenshot is exported
+    bool m_bendHandleShown = false;
     QPointer<QWidget> m_toolWidget;
     QPointer<QMessageBox> m_quitPrompt;
 

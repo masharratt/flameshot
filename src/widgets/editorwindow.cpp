@@ -16,7 +16,12 @@
 #include <QCursor>
 #include <QEvent>
 #include <QFileInfo>
+#include <QAbstractSpinBox>
+#include <QApplication>
 #include <QGuiApplication>
+#include <QLineEdit>
+#include <QPlainTextEdit>
+#include <QTextEdit>
 #include <QIcon>
 #include <QScreen>
 #include <QScrollArea>
@@ -75,6 +80,7 @@ EditorWindow::EditorWindow(const QString& path, const QPixmap& image)
                         GlobalValues::buttonBaseSize());
         b->show();
     }
+    addSelectButton();
     addExpandButton();
     addSettingsBar();
     m_toolbar->setFixedHeight(toolbarHeightFor(width()));
@@ -82,6 +88,17 @@ EditorWindow::EditorWindow(const QString& path, const QPixmap& image)
     dockSidePanel();
 
     new QShortcut(QKeySequence::Close, this, SLOT(close()));
+    // V selects, unless the user is typing into a text object or field
+    auto* selectShortcut = new QShortcut(QKeySequence(Qt::Key_V), this);
+    connect(selectShortcut, &QShortcut::activated, this, [this]() {
+        QWidget* focus = QApplication::focusWidget();
+        if (m_capture && !qobject_cast<QTextEdit*>(focus) &&
+            !qobject_cast<QLineEdit*>(focus) &&
+            !qobject_cast<QPlainTextEdit*>(focus) &&
+            !qobject_cast<QAbstractSpinBox*>(focus)) {
+            m_capture->deactivateTool();
+        }
+    });
 
     // Esc, Save and the other finishing tools close the CaptureWidget
     connect(m_capture, &QObject::destroyed, this, [this]() { close(); });
@@ -89,6 +106,52 @@ EditorWindow::EditorWindow(const QString& path, const QPixmap& image)
             &CaptureWidget::editCanvasResized,
             this,
             &EditorWindow::growToCanvas);
+    connect(m_capture,
+            &CaptureWidget::toolActiveChanged,
+            this,
+            [this](bool active) { setSelectChecked(!active); });
+}
+
+// The first button of the strip. Not a capture tool: it drops the active
+// drawing tool so clicks select and move existing objects. It shows checked
+// whenever no drawing tool is active.
+void EditorWindow::addSelectButton()
+{
+    m_selectButton = new CaptureButton(m_toolbar);
+    m_selectButton->setStyleSheet(m_selectButton->styleSheet() +
+                                  QStringLiteral(" CaptureButton { padding: "
+                                                 "0; }"));
+    const int size = GlobalValues::buttonBaseSize();
+    m_selectButton->setFixedSize(size, size);
+    m_selectButton->setMask(
+      QRegion(QRect(-1, -1, size + 2, size + 2), QRegion::Ellipse));
+    m_selectButton->setIconSize(QSize(size, size) * 0.6);
+    m_selectButton->setToolTip(tr("Select and move (V)"));
+    connect(m_selectButton, &QPushButton::clicked, this, [this]() {
+        if (m_capture) {
+            m_capture->deactivateTool();
+        }
+    });
+    m_selectButton->show();
+    // No tool is active when the editor opens
+    setSelectChecked(true);
+}
+
+void EditorWindow::setSelectChecked(bool checked)
+{
+    if (!m_selectButton) {
+        return;
+    }
+    ConfigHandler config;
+    const QColor ui = checked ? config.contrastUiColor() : config.uiColor();
+    m_selectButton->setColor(ui);
+    m_selectButton->setStyleSheet(m_selectButton->styleSheet() +
+                                  QStringLiteral(" CaptureButton { padding: "
+                                                 "0; }"));
+    const QString iconDir = ColorUtils::colorIsDark(ui)
+                              ? PathInfo::whiteIconPath()
+                              : PathInfo::blackIconPath();
+    m_selectButton->setIcon(QIcon(iconDir + QStringLiteral("cursor-default.svg")));
 }
 
 // A button in the strip after the tool buttons. It is not a capture tool: it
@@ -189,7 +252,8 @@ int EditorWindow::buttonRowsHeightFor(int width) const
 
 int EditorWindow::stripCount() const
 {
-    return m_buttons.size() + (m_expandButton ? 1 : 0);
+    return m_buttons.size() + (m_selectButton ? 1 : 0) +
+           (m_expandButton ? 1 : 0);
 }
 
 // One row of buttons that wraps to further rows when the window is narrow
@@ -200,16 +264,19 @@ void EditorWindow::layoutToolbar()
     const int perRow =
       std::max(1, (usable + kToolbarSpacing) / (size + kToolbarSpacing));
     int i = 0;
-    for (CaptureToolButton* b : m_buttons) {
-        const int row = i / perRow;
-        const int col = i % perRow;
-        b->move(kToolbarPad + col * (size + kToolbarSpacing),
-                kToolbarPad + row * (size + kToolbarSpacing));
+    auto place = [&](QWidget* w) {
+        w->move(kToolbarPad + (i % perRow) * (size + kToolbarSpacing),
+                kToolbarPad + (i / perRow) * (size + kToolbarSpacing));
         ++i;
+    };
+    if (m_selectButton) {
+        place(m_selectButton);
+    }
+    for (CaptureToolButton* b : m_buttons) {
+        place(b);
     }
     if (m_expandButton) {
-        m_expandButton->move(kToolbarPad + (i % perRow) * (size + kToolbarSpacing),
-                             kToolbarPad + (i / perRow) * (size + kToolbarSpacing));
+        place(m_expandButton);
     }
     if (m_settingsBar) {
         const int y = buttonRowsHeightFor(width());

@@ -76,6 +76,8 @@ public:
 
 signals:
     void captureTaken(QPixmap p);
+    // Editor windows were hidden or shown again (tray menu enable state)
+    void hiddenEditorsChanged();
     void captureFailed();
     // selection uses exportCapture units (for pins); globalRect is the
     // captured area in global logical points.
@@ -96,6 +98,13 @@ public slots:
     // file at path. capture is in device pixels and carries its own device
     // pixel ratio. Editor windows are independent of the capture overlay.
     void editSavedCapture(const QString& path, const QPixmap& capture);
+    // Hide every visible editor window, keeping its edits, and remember them
+    // so showEditorWindows() can bring them back
+    void hideEditorWindows();
+    void showEditorWindows();
+    bool hasHiddenEditorWindows() const;
+    // Adds or removes the Dock icon (Cmd+Tab entry) for open editors
+    void updateEditorDockIcon();
     void exportCapture(const QPixmap& p,
                        QRect& selection,
                        const CaptureRequest& req);
@@ -113,6 +122,7 @@ private:
 
     QPointer<CaptureWidget> m_captureWindow;
     QList<QPointer<EditorWindow>> m_editorWindows;
+    QList<QPointer<EditorWindow>> m_hiddenEditors;
     QPointer<InfoWindow> m_infoWindow;
     QPointer<CaptureLauncher> m_launcherWindow;
     QPointer<ConfigWindow> m_configWindow;
@@ -125,6 +135,7 @@ public:
 private:
     void onWindowVisibilityChanged(QWindow::Visibility newVisibility);
     int m_dockIconVisibleCount = 0;
+    bool m_editorDockIcon = false;
 #endif
 
 #if (defined(Q_OS_MACOS) || defined(Q_OS_WIN))

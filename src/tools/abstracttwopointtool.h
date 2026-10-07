@@ -5,6 +5,9 @@
 
 #include "capturetool.h"
 
+#include <QPointF>
+#include <optional>
+
 class AbstractTwoPointTool : public CaptureTool
 {
     Q_OBJECT
@@ -24,6 +27,22 @@ public:
     const QPair<QPoint, QPoint> points() const { return m_points; };
     void paintMousePreview(QPainter& painter,
                            const CaptureContext& context) override;
+    void drawObjectSelection(QPainter& painter) override;
+
+    // Bending: tools that opt in (arrow, line) show a handle at the curve
+    // midpoint while selected. The bend is stored as the quadratic control
+    // point; without it the tool is a straight line.
+    virtual bool supportsBend() const { return false; }
+    bool isBent() const { return m_control.has_value(); }
+    // Where the handle sits: the curve midpoint (chord midpoint if straight).
+    QPointF bendHandlePos() const;
+    // Bend through handle. Within BendSnapPx of the straight midpoint the
+    // bend is cleared instead.
+    void setBendHandle(const QPointF& handle);
+    // Paints only the round bend handle (no selection frame)
+    void drawBendHandle(QPainter& painter) const;
+    static constexpr double BendSnapPx = 3.0;
+    static constexpr int BendHandleRadiusPx = 5;
 
 public slots:
     void drawEnd(const QPoint& p) override;
@@ -38,6 +57,7 @@ private:
 
 protected:
     void copyParams(const AbstractTwoPointTool* from, AbstractTwoPointTool* to);
+    const std::optional<QPointF>& control() const { return m_control; }
     void setPadding(int padding) { m_padding = padding; };
 
 private:
@@ -46,6 +66,7 @@ private:
     int m_padding;
     QColor m_color;
     QPair<QPoint, QPoint> m_points;
+    std::optional<QPointF> m_control;
 
 protected:
     // use m_padding to extend the area of the backup

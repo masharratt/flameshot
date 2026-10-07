@@ -66,10 +66,12 @@ target_sources(
   PRIVATE abstractactiontool.cpp
           abstractpathtool.cpp
           abstracttwopointtool.cpp
+          curvemath.cpp
           capturecontext.cpp
           toolfactory.cpp
           abstractactiontool.h
           abstractpathtool.h
           abstracttwopointtool.h
+          curvemath.h
           capturetool.h
           toolfactory.h)

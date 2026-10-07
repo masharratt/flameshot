@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "arrowtool.h"
+#include "tools/curvemath.h"
 #include "utils/confighandler.h"
 
 #include <QComboBox>
@@ -120,6 +121,30 @@ QLineF getCurvedArrowShaft(QPointF p1, QPointF p2, const int thickness)
     return shaft;
 }
 
+// Point at distance dist from tip along the curve, searching back from the
+// tip. Returns the curve parameter t (0 at the tail, 1 at the tip).
+double curveParamAtDistanceFromTip(const QPointF& tail,
+                                   const QPointF& ctrl,
+                                   const QPointF& tip,
+                                   double dist)
+{
+    double lo = 0.0; // far from the tip
+    double hi = 1.0; // at the tip
+    if (QLineF(tail, tip).length() <= dist) {
+        return 0.0;
+    }
+    for (int i = 0; i < 30; ++i) {
+        const double mid = (lo + hi) / 2.0;
+        if (QLineF(curvemath::quadPoint(tail, ctrl, tip, mid), tip).length() >
+            dist) {
+            lo = mid;
+        } else {
+            hi = mid;
+        }
+    }
+    return hi;
+}
+
 } // unnamed namespace
 
 ArrowTool::ArrowTool(QObject* parent)
@@ -184,6 +209,16 @@ QRect ArrowTool::boundingRect() const
         }
     }
 
+    if (isBent()) {
+        const QRectF curve = curvemath::curveBounds(
+          points().first, *control(), points().second);
+        const QRect bent = curve.toAlignedRect().adjusted(
+          -offset, -offset, offset, offset);
+        QRect headRect(QPoint(min_x, min_y), QPoint(max_x, max_y));
+        return bent.united(headRect.adjusted(-offset, -offset, offset, offset))
+          .normalized();
+    }
+
     // get min and max line pos
     int line_pos_min_x =
       std::min(std::min(points().first.x(), points().second.x()), min_x);
@@ -245,6 +280,10 @@ void ArrowTool::process(QPainter& painter, const QPixmap& pixmap)
     const QPoint& tail = isArrowReversed ? points().first : points().second;
 
     Q_UNUSED(pixmap)
+    if (isBent()) {
+        processBent(painter, head, tail);
+        return;
+    }
     painter.setPen(QPen(color(), size()));
     if (m_arrowStyle == ArrowStyle::Default) {
         painter.drawLine(getShorterLine(head, tail, size()));
@@ -256,6 +295,47 @@ void ArrowTool::process(QPainter& painter, const QPixmap& pixmap)
     painter.setPen(QPen(color(), size(), Qt::SolidLine, Qt::FlatCap));
     painter.drawLine(getCurvedArrowShaft(head, tail, size()));
     m_arrowPath = getCurvedArrowHead(head, tail, size());
+    painter.fillPath(m_arrowPath, QBrush(color()));
+}
+
+// Bent arrow: the shaft is a quadratic curve ending just behind the head, and
+// the head is the usual one rotated to the curve tangent at the tip. The head
+// builders only need a tail point on the tangent line at the chord length, so
+// head size and shortening behave as for a straight arrow.
+void ArrowTool::processBent(QPainter& painter,
+                            const QPoint& start,
+                            const QPoint& tip)
+{
+    const QPointF ctrl = *control();
+    const double angle = curvemath::endTangentAngle(start, ctrl, tip) * M_PI /
+                         180.0;
+    const double chord = QLineF(start, tip).length();
+    const QPoint virtualTail =
+      (QPointF(tip) - QPointF(std::cos(angle), std::sin(angle)) * chord)
+        .toPoint();
+
+    const bool isDefault = m_arrowStyle == ArrowStyle::Default;
+    const QPointF shaftEnd =
+      isDefault ? QPointF(getShorterLine(virtualTail, tip, size()).p2())
+                : getCurvedArrowShaft(virtualTail, tip, size()).p2();
+    const double t = curveParamAtDistanceFromTip(
+      start, ctrl, tip, QLineF(shaftEnd, tip).length());
+
+    QPainterPath shaft;
+    shaft.moveTo(QPointF(start));
+    shaft.quadTo(QPointF(start) + (ctrl - QPointF(start)) * t,
+                 curvemath::quadPoint(start, ctrl, tip, t));
+
+    painter.setBrush(Qt::NoBrush);
+    if (isDefault) {
+        painter.setPen(QPen(color(), size()));
+        painter.drawPath(shaft);
+        m_arrowPath = getArrowHead(virtualTail, tip, size());
+    } else {
+        painter.setPen(QPen(color(), size(), Qt::SolidLine, Qt::FlatCap));
+        painter.drawPath(shaft);
+        m_arrowPath = getCurvedArrowHead(virtualTail, tip, size());
+    }
     painter.fillPath(m_arrowPath, QBrush(color()));
 }
 

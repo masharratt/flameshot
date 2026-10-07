@@ -41,7 +41,9 @@ private:
     int stripCount() const;
     void layoutToolbar();
     void dockSidePanel();
+    void addSelectButton();
     void addExpandButton();
+    void setSelectChecked(bool checked);
     void addSettingsBar();
     // Height of the button rows alone, without the settings row
     int buttonRowsHeightFor(int width) const;
@@ -53,6 +55,7 @@ private:
     QScrollArea* m_scroll{ nullptr };
     QWidget* m_toolbar{ nullptr };
     QVector<CaptureToolButton*> m_buttons;
+    CaptureButton* m_selectButton{ nullptr };
     CaptureButton* m_expandButton{ nullptr };
     EditorSettingsBar* m_settingsBar{ nullptr };
     QPixmap m_image;

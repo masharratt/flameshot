@@ -7,6 +7,7 @@
 #include "widgets/toaststack.h"
 
 #include <QDesktopServices>
+#include <QMouseEvent>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QHBoxLayout>
@@ -64,6 +65,12 @@ CaptureToast::CaptureToast(const QString& path,
                                     Qt::SmoothTransformation);
     scaled.setDevicePixelRatio(devicePixelRatioF());
     thumb->setPixmap(scaled);
+    // Clicking the picture does the same as Edit (or opens a recording)
+    thumb->setCursor(Qt::PointingHandCursor);
+    thumb->setToolTip(recording ? tr("Open") : tr("Edit"));
+    thumb->installEventFilter(this);
+    m_thumb = thumb;
+    m_recording = recording;
     layout->addWidget(thumb);
 
     auto* row = new QHBoxLayout();
@@ -82,10 +89,7 @@ CaptureToast::CaptureToast(const QString& path,
             close();
         });
     } else {
-        addButton(tr("Edit"), [this]() {
-            Flameshot::instance()->editSavedCapture(m_path, m_capture);
-            close();
-        });
+        addButton(tr("Edit"), [this]() { openFromThumbnail(); });
         addButton(tr("Copy"), [this]() {
             FlameshotDaemon::copyToClipboard(m_capture);
             close();
@@ -214,4 +218,27 @@ void CaptureToast::restack()
             onScreen[i]->move(positions[i].topLeft());
         }
     }
+}
+
+void CaptureToast::openFromThumbnail()
+{
+    if (m_recording) {
+        QDesktopServices::openUrl(QUrl::fromLocalFile(m_path));
+    } else {
+        Flameshot::instance()->editSavedCapture(m_path, m_capture);
+    }
+    close();
+}
+
+bool CaptureToast::eventFilter(QObject* watched, QEvent* event)
+{
+    if (watched == m_thumb && event->type() == QEvent::MouseButtonRelease) {
+        auto* mouse = static_cast<QMouseEvent*>(event);
+        if (mouse->button() == Qt::LeftButton &&
+            m_thumb->rect().contains(mouse->position().toPoint())) {
+            openFromThumbnail();
+            return true;
+        }
+    }
+    return QWidget::eventFilter(watched, event);
 }

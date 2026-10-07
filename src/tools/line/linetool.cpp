@@ -3,7 +3,10 @@
 
 #include "linetool.h"
 
+#include "tools/curvemath.h"
+
 #include <QPainter>
+#include <QPainterPath>
 
 LineTool::LineTool(QObject* parent)
   : AbstractTwoPointTool(parent)
@@ -44,7 +47,14 @@ void LineTool::process(QPainter& painter, const QPixmap& pixmap)
 {
     Q_UNUSED(pixmap)
     painter.setPen(QPen(color(), size()));
-    painter.drawLine(points().first, points().second);
+    if (!isBent()) {
+        painter.drawLine(points().first, points().second);
+        return;
+    }
+    QPainterPath path(points().first);
+    path.quadTo(*control(), points().second);
+    painter.setBrush(Qt::NoBrush);
+    painter.drawPath(path);
 }
 
 void LineTool::pressed(CaptureContext& context)

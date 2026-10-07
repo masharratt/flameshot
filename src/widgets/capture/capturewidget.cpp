@@ -14,6 +14,7 @@
 #include "config/generalconf.h"
 #include "core/flameshot.h"
 #include "core/qguiappcurrentscreen.h"
+#include "tools/abstracttwopointtool.h"
 #include "tools/copy/copytool.h"
 #include "utils/abstractlogger.h"
 #include "utils/screengrabber.h"
@@ -37,6 +38,7 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QFontMetrics>
+#include <QLineF>
 #include <QGuiApplication>
 #include <QMessageBox>
 #include <QPaintEvent>
@@ -659,9 +661,19 @@ void CaptureWidget::uncheckActiveTool()
     m_activeButton->setColor(m_uiColor);
     updateTool(activeButtonTool());
     m_activeButton = nullptr;
+    emit toolActiveChanged(false);
     releaseActiveTool();
     updateSelectionState();
     updateCursor();
+}
+
+void CaptureWidget::deactivateTool()
+{
+    if (m_activeButton != nullptr) {
+        // Keep a text box or shape that is still being drawn
+        commitCurrentTool();
+        uncheckActiveTool();
+    }
 }
 
 void CaptureWidget::closeEvent(QCloseEvent* event)
@@ -908,6 +920,52 @@ void CaptureWidget::pushObjectsStateToUndoStack()
     m_captureToolObjectsBackup.clear();
 }
 
+// The object whose bend handle is live: the selected object when no tool is
+// active, otherwise the arrow/line just drawn while its tool stays active.
+AbstractTwoPointTool* CaptureWidget::bendTarget()
+{
+    if (m_activeButton == nullptr) {
+        return dynamic_cast<AbstractTwoPointTool*>(activeToolObject().data());
+    }
+    const auto objects = m_captureToolObjects.captureToolObjects();
+    if (m_lastBendableIndex < 0 || m_lastBendableIndex >= objects.size()) {
+        return nullptr;
+    }
+    const QPointer<CaptureTool>& last = objects.at(m_lastBendableIndex);
+    if (!last || last->type() != activeButtonToolType()) {
+        return nullptr;
+    }
+    return dynamic_cast<AbstractTwoPointTool*>(last.data());
+}
+
+AbstractTwoPointTool* CaptureWidget::bendableObjectWithHandleAt(
+  const QPoint& pos)
+{
+    auto* tool = bendTarget();
+    if (!tool || !tool->supportsBend() || !tool->isValid() ||
+        tool->editMode()) {
+        return nullptr;
+    }
+    const double grab = AbstractTwoPointTool::BendHandleRadiusPx + 3;
+    if (QLineF(tool->bendHandlePos(), QPointF(pos)).length() > grab) {
+        return nullptr;
+    }
+    return tool;
+}
+
+void CaptureWidget::dragBendHandle(const QPoint& pos)
+{
+    auto* tool = bendTarget();
+    if (!tool) {
+        return;
+    }
+    // update the old region, the new one is updated by drawToolsData()
+    update(paddedUpdateRect(tool->boundingRect()));
+    m_activeToolIsMoved = true;
+    tool->setBendHandle(pos);
+    drawToolsData();
+}
+
 int CaptureWidget::selectToolItemAtPos(const QPoint& pos)
 {
     // Try to select existing tool, "-1" - no active tool
@@ -945,6 +1003,14 @@ void CaptureWidget::mousePressEvent(QMouseEvent* e)
     m_activeToolOffsetToMouseOnStart = QPoint();
     if (m_colorPicker->isVisible()) {
         updateCursor();
+        return;
+    }
+    // Grab the bend handle of the selected arrow/line before anything else
+    // can deselect or move the object
+    if (e->button() == Qt::LeftButton && bendableObjectWithHandleAt(e->pos())) {
+        m_bendDragging = true;
+        m_captureToolObjectsBackup = m_captureToolObjects;
+        setCursor(Qt::ClosedHandCursor);
         return;
     }
     // reset object selection if capture area selection is active
@@ -1026,6 +1092,12 @@ void CaptureWidget::mouseMoveEvent(QMouseEvent* e)
     }
 
     m_context.mousePos = e->pos();
+    if (m_bendDragging) {
+        if (e->buttons() == Qt::LeftButton) {
+            dragBendHandle(e->pos());
+        }
+        return;
+    }
     if (e->buttons() == Qt::NoButton) {
         updateHoverWindow(e->pos());
     } else if (m_windowPressPending &&
@@ -1105,6 +1177,18 @@ void CaptureWidget::mouseReleaseEvent(QMouseEvent* e)
       !m_hoverRect.isEmpty() &&
       classifyPress(m_mousePressedPos, e->pos()) == PressKind::Click;
     m_windowPressPending = false;
+    if (m_bendDragging && e->button() == Qt::LeftButton) {
+        m_bendDragging = false;
+        if (m_activeToolIsMoved) {
+            m_activeToolIsMoved = false;
+            pushObjectsStateToUndoStack();
+        } else {
+            m_captureToolObjectsBackup.clear();
+        }
+        drawToolsData();
+        updateCursor();
+        return;
+    }
     if (e->button() == Qt::LeftButton && m_colorPicker->isVisible()) {
         // Color picker
         if (m_colorPicker->isVisible() && m_panel->activeLayerIndex() >= 0 &&
@@ -1538,10 +1622,12 @@ void CaptureWidget::setState(CaptureToolButton* b)
             m_activeButton->setColor(m_contrastUiColor);
             m_panel->setActiveLayer(-1);
             m_panel->setToolWidget(b->tool()->configurationWidget());
+            emit toolActiveChanged(true);
         } else if (m_activeButton) {
             m_panel->clearToolWidget();
             m_activeButton->setColor(m_uiColor);
             m_activeButton = nullptr;
+            emit toolActiveChanged(false);
         }
         m_context.toolSize = ConfigHandler().toolSize(activeButtonToolType());
         emit toolSizeChanged(m_context.toolSize);
@@ -1570,11 +1656,17 @@ void CaptureWidget::handleToolSignal(CaptureTool::Request r)
             // TODO
             break;
         case CaptureTool::REQ_CAPTURE_DONE_OK:
+            // Never export the bend handle as part of the image
+            if (m_bendHandleShown) {
+                drawToolsData(false);
+            }
             m_captureDone = true;
             break;
         case CaptureTool::REQ_CLEAR_SELECTION:
             if (m_panel->activeLayerIndex() >= 0) {
                 m_panel->setActiveLayer(-1);
+                drawToolsData(false);
+            } else if (m_bendHandleShown) {
                 drawToolsData(false);
             }
             break;
@@ -1960,6 +2052,14 @@ void CaptureWidget::pushToolToStack()
 
         m_captureToolObjectsBackup = m_captureToolObjects;
         m_captureToolObjects.append(m_activeTool);
+        if (auto* twoPoint =
+              dynamic_cast<AbstractTwoPointTool*>(m_activeTool.data());
+            twoPoint && twoPoint->supportsBend()) {
+            m_lastBendableIndex =
+              m_captureToolObjects.captureToolObjects().size() - 1;
+        } else {
+            m_lastBendableIndex = -1;
+        }
         pushObjectsStateToUndoStack();
         releaseActiveTool();
         drawToolsData();
@@ -1975,6 +2075,7 @@ void CaptureWidget::drawToolsData(bool drawSelection)
     // TODO refactor this for performance. The objects should not all be updated
     // at once every time
     QPixmap pixmapItem = m_context.origScreenshot;
+    m_bendHandleShown = false;
     for (const auto& toolItem : m_captureToolObjects.captureToolObjects()) {
         processPixmapWithTool(&pixmapItem, toolItem);
         update(paddedUpdateRect(toolItem->boundingRect()));
@@ -1998,6 +2099,12 @@ void CaptureWidget::drawObjectSelection()
         }
         if (activeToolObject() && m_activeButton) {
             uncheckActiveTool();
+        }
+    } else if (m_activeButton) {
+        if (auto* tool = bendTarget()) {
+            QPainter painter(&m_context.screenshot);
+            tool->drawBendHandle(painter);
+            m_bendHandleShown = true;
         }
     }
 }

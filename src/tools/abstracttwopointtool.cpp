@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "abstracttwopointtool.h"
+#include "curvemath.h"
 
 #include <QCursor>
 #include <QScreen>
@@ -41,6 +42,7 @@ void AbstractTwoPointTool::copyParams(const AbstractTwoPointTool* from,
     CaptureTool::copyParams(from, to);
     to->m_points.first = from->m_points.first;
     to->m_points.second = from->m_points.second;
+    to->m_control = from->m_control;
     to->m_color = from->m_color;
     to->m_thickness = from->m_thickness;
     to->m_padding = from->m_padding;
@@ -83,6 +85,13 @@ QRect AbstractTwoPointTool::boundingRect() const
     }
     int offset =
       m_thickness <= 1 ? 1 : static_cast<int>(round(m_thickness * 0.7 + 0.5));
+    if (m_control) {
+        const QRectF bounds = curvemath::curveBounds(
+          m_points.first, *m_control, m_points.second);
+        return bounds.toAlignedRect()
+          .adjusted(-offset, -offset, offset, offset)
+          .normalized();
+    }
     QRect rect =
       QRect(std::min(m_points.first.x(), m_points.second.x()) - offset,
             std::min(m_points.first.y(), m_points.second.y()) - offset,
@@ -177,11 +186,55 @@ QPoint AbstractTwoPointTool::adjustedVector(QPoint v) const
 void AbstractTwoPointTool::move(const QPoint& pos)
 {
     QPoint offset = m_points.second - m_points.first;
+    const QPoint delta = pos - m_points.first;
     m_points.first = pos;
     m_points.second = m_points.first + offset;
+    if (m_control) {
+        *m_control += delta;
+    }
 }
 
 const QPoint* AbstractTwoPointTool::pos()
 {
     return &m_points.first;
+}
+
+QPointF AbstractTwoPointTool::bendHandlePos() const
+{
+    if (m_control) {
+        return curvemath::handleFromControl(
+          m_points.first, m_points.second, *m_control);
+    }
+    return (QPointF(m_points.first) + QPointF(m_points.second)) / 2.0;
+}
+
+void AbstractTwoPointTool::setBendHandle(const QPointF& handle)
+{
+    if (curvemath::isStraight(
+          m_points.first, m_points.second, handle, BendSnapPx)) {
+        m_control.reset();
+        return;
+    }
+    m_control =
+      curvemath::controlFromHandle(m_points.first, m_points.second, handle);
+}
+
+void AbstractTwoPointTool::drawObjectSelection(QPainter& painter)
+{
+    CaptureTool::drawObjectSelection(painter);
+    drawBendHandle(painter);
+}
+
+void AbstractTwoPointTool::drawBendHandle(QPainter& painter) const
+{
+    if (!supportsBend() || !isValid()) {
+        return;
+    }
+    const QPointF handle = bendHandlePos();
+    painter.save();
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(QPen(Qt::black, 2));
+    painter.setBrush(Qt::white);
+    painter.drawEllipse(handle, BendHandleRadiusPx, BendHandleRadiusPx);
+    painter.restore();
 }
