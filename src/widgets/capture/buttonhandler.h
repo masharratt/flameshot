@@ -27,6 +27,10 @@ public:
     size_t size() const;
 
     void setButtons(const QVector<CaptureToolButton*>&);
+    const QVector<CaptureToolButton*>& buttons() const;
+    // Toolbar mode (windowed editor): the owner places the buttons in a fixed
+    // strip, so this handler never moves or hides them, it only shows them.
+    void setToolbarMode(bool enabled);
     bool contains(const QPoint& p) const;
     void updateScreenRegions(const QVector<QRect>& rects);
     void updateScreenRegions(const QRect& rect);
@@ -58,7 +62,8 @@ private:
     int m_buttonExtendedSize;
     int m_buttonBaseSize;
 
-    bool m_buttonsAreInside;
+    bool m_buttonsAreInside{ false };
+    bool m_toolbarMode{ false };
     bool m_blockedRight;
     bool m_blockedLeft;
     bool m_blockedBotton;

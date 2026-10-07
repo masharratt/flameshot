@@ -102,8 +102,10 @@ bool ColorGrabWidget::eventFilter(QObject*, QEvent* event)
 
         // Hide overlay message when cursor is over it
         OverlayMessage* overlayMsg = OverlayMessage::instance();
-        overlayMsg->setVisibility(
-          !overlayMsg->geometry().contains(cursorPos()));
+        if (overlayMsg) {
+            overlayMsg->setVisibility(
+              !overlayMsg->geometry().contains(cursorPos()));
+        }
 
         m_color = getColorAtPoint(cursorPos());
         emit colorUpdated(m_color);

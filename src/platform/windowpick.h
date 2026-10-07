@@ -25,6 +25,14 @@ QRect toOverlayRect(const QRect& globalBounds,
                     const QPoint& overlayTopLeft,
                     const QRect& overlayRect);
 
+// What the picker should outline for a cursor at globalPos: the topmost
+// candidate window under it, or the whole overlay when there is none.
+// Result is overlay-local logical points.
+QRect hoverTarget(const QList<WindowInfo>& frontToBack,
+                  const QPoint& globalPos,
+                  const QPoint& overlayTopLeft,
+                  const QRect& overlayRect);
+
 enum class PressKind
 {
     Click,

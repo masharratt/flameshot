@@ -25,7 +25,9 @@
 #include "widgets/capture/modificationcommand.h"
 #include "widgets/capture/notifierbox.h"
 #include "widgets/capture/overlaymessage.h"
+#include "widgets/capture/pickerstyle.h"
 #include "widgets/draggablewidgetmaker.h"
+#include "widgets/editcanvas.h"
 #include "widgets/orientablepushbutton.h"
 #include "widgets/panel/sidepanelwidget.h"
 #include "widgets/panel/utilitypanel.h"
@@ -35,6 +37,7 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QFontMetrics>
+#include <QGuiApplication>
 #include <QMessageBox>
 #include <QPaintEvent>
 #include <QPainter>
@@ -107,6 +110,12 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
     m_uiColor = m_config.uiColor();
     m_contrastUiColor = m_config.contrastUiColor();
     setMouseTracking(true);
+    m_pickerStyle = useShareXPicker(req);
+    if (!req.editImage().isNull()) {
+        // Windowed editor: a plain child widget, never a screen overlay
+        m_editMode = true;
+        fullScreen = false;
+    }
     initContext(fullScreen, req);
 
     ScreenGrabber grabber;
@@ -116,7 +125,9 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
     // Top left of the whole set of screens
     QPoint topLeft(0, 0);
 #endif
-    if (fullScreen) {
+    if (m_editMode) {
+        initEditCanvas(req.editImage());
+    } else if (fullScreen) {
         bool ok = true;
         int preSelectedMonitor;
         if (req.hasSelectedMonitor()) {
@@ -124,19 +135,14 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
         } else {
             preSelectedMonitor = -1;
         }
-        if (!req.presetScreenshot().isNull()) {
-            // Edit from the capture toast: use the given pixmap, no grab
-            m_context.screenshot = req.presetScreenshot();
-        } else {
-            m_context.screenshot =
-              grabber.grabEntireDesktop(ok, preSelectedMonitor);
-            // Snapshot the windows now, in step with the grab and before the
-            // overlay is shown. Skipped for a preset screenshot: the desktop
-            // no longer matches it.
-            if (m_config.hoverWindowDetection()) {
-                m_windowCandidates = filterCandidates(
-                  onScreenWindows(), QCoreApplication::applicationPid());
-            }
+        m_context.screenshot =
+          grabber.grabEntireDesktop(ok, preSelectedMonitor);
+        // Snapshot the windows now, in step with the grab and before the
+        // overlay is shown.
+        if (m_config.hoverWindowDetection()) {
+            m_hoverEnabled = true;
+            m_windowCandidates = filterCandidates(
+              onScreenWindows(), QCoreApplication::applicationPid());
         }
         if (!ok) {
             // Error already logged in ScreenGrabber
@@ -239,12 +245,14 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
     m_buttonHandler = new ButtonHandler(this);
     m_buttonHandler->updateScreenRegions(areas);
     m_buttonHandler->hide();
+    // The windowed editor places the buttons in its own fixed toolbar
+    m_buttonHandler->setToolbarMode(m_editMode);
 
     initButtons();
     initSelection(); // button handler must be initialized before
     initShortcuts(); // must be called after initSelection
     // init magnify
-    if (m_config.showMagnifier()) {
+    if (m_config.showMagnifier() && !m_editMode) {
         m_magnifier = new MagnifierWidget(
           m_context.screenshot, m_uiColor, m_config.squareMagnifier(), this);
     }
@@ -290,7 +298,9 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
       ConfigHandler::getInstance(), &ConfigHandler::error, this, [=, this]() {
           m_configError = true;
           m_configErrorResolved = false;
-          OverlayMessage::instance()->update();
+          if (OverlayMessage::instance()) {
+              OverlayMessage::instance()->update();
+          }
       });
     connect(ConfigHandler::getInstance(),
             &ConfigHandler::errorResolved,
@@ -298,7 +308,9 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
             [=, this]() {
                 m_configError = false;
                 m_configErrorResolved = true;
-                OverlayMessage::instance()->update();
+                if (OverlayMessage::instance()) {
+                    OverlayMessage::instance()->update();
+                }
             });
 
     // OverlayMessage is a child widget, so use widget-local coordinates
@@ -307,12 +319,15 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
       m_context.fullscreen && !areas.isEmpty() ? areas.first() : rect();
     OverlayMessage::init(this, overlayArea);
 
-    if (m_config.showHelp()) {
+    // No help box for the ShareX-style picker or the windowed editor
+    if (m_config.showHelp() && !m_pickerStyle && !m_editMode) {
         initHelpMessage();
         OverlayMessage::push(m_helpMessage);
     }
 
-    initQuitPrompt();
+    if (!m_editMode) {
+        initQuitPrompt();
+    }
 
     updateCursor();
 }
@@ -331,13 +346,15 @@ CaptureWidget::~CaptureWidget()
     }
 #endif
     if (m_captureDone) {
-        auto lastRegion = m_selection->geometry();
-        const qreal scale = m_context.screenshot.devicePixelRatio();
-        lastRegion.setTop(lastRegion.top() * scale);
-        lastRegion.setBottom(lastRegion.bottom() * scale);
-        lastRegion.setLeft(lastRegion.left() * scale);
-        lastRegion.setRight(lastRegion.right() * scale);
-        setLastRegion(lastRegion);
+        if (!m_editMode) {
+            auto lastRegion = m_selection->geometry();
+            const qreal scale = m_context.screenshot.devicePixelRatio();
+            lastRegion.setTop(lastRegion.top() * scale);
+            lastRegion.setBottom(lastRegion.bottom() * scale);
+            lastRegion.setLeft(lastRegion.left() * scale);
+            lastRegion.setRight(lastRegion.right() * scale);
+            setLastRegion(lastRegion);
+        }
         QRect geometry(m_context.selection);
         geometry.setTopLeft(geometry.topLeft() + m_context.widgetOffset);
         m_context.request.setCapturedGlobalRect(
@@ -345,7 +362,7 @@ CaptureWidget::~CaptureWidget()
                               pos()));
         Flameshot::instance()->exportCapture(
           pixmap(), geometry, m_context.request);
-    } else {
+    } else if (!m_editMode) {
         emit Flameshot::instance()->captureFailed();
     }
 }
@@ -354,6 +371,11 @@ void CaptureWidget::initButtons()
 {
     auto allButtonTypes = CaptureToolButton::getIterableButtonTypes();
     auto visibleButtonTypes = m_config.buttons();
+    if (m_editMode) {
+        // The selection is fixed to the image
+        allButtonTypes.removeOne(CaptureTool::TYPE_MOVESELECTION);
+        visibleButtonTypes.removeOne(CaptureTool::TYPE_MOVESELECTION);
+    }
     if ((m_context.request.tasks() == CaptureRequest::NO_TASK) ||
         (m_context.request.tasks() == CaptureRequest::PRINT_GEOMETRY)) {
         allButtonTypes.removeOne(CaptureTool::TYPE_ACCEPT);
@@ -595,8 +617,9 @@ void CaptureWidget::deleteToolWidgetOrClose()
     } else if (m_colorPicker && m_colorPicker->isVisible()) {
         m_colorPicker->hide();
     } else {
-        // close CaptureWidget
-        if (m_config.showQuitPrompt()) {
+        // close CaptureWidget; closing the editor discards edits without a
+        // prompt
+        if (m_config.showQuitPrompt() && !m_editMode) {
             // need to show prompt
             if (m_quitPrompt->isHidden() && promptQuit()) {
                 close();
@@ -702,7 +725,9 @@ void CaptureWidget::paintEvent(QPaintEvent* paintEvent)
         save = true;
     }
     painter.drawPixmap(0, 0, m_context.screenshot);
-    if (m_selection && m_xywhDisplay) {
+    if (m_selection && m_xywhDisplay && m_pickerStyle) {
+        drawPickerSizeLabel(&painter);
+    } else if (m_selection && m_xywhDisplay) {
         const QRect& selection = m_selection->geometry().normalized();
         const qreal scale = m_context.screenshot.devicePixelRatio();
         QRect xybox;
@@ -794,15 +819,21 @@ void CaptureWidget::paintEvent(QPaintEvent* paintEvent)
     }
     if (save)
         painter.restore();
-    // draw inactive region
-    drawInactiveRegion(&painter);
+    // draw inactive region (the editor shows the whole canvas undimmed)
+    if (!m_editMode) {
+        drawInactiveRegion(&painter);
+    }
 
     if (hoverWindowActive()) {
         painter.save();
         painter.setClipping(false);
         painter.setBrush(Qt::NoBrush);
-        painter.setPen(QPen(m_uiColor, 2));
-        painter.drawRect(m_hoverRect.adjusted(1, 1, -1, -1));
+        if (m_pickerStyle) {
+            drawPickerOutline(&painter, m_hoverRect);
+        } else {
+            painter.setPen(QPen(m_uiColor, 2));
+            painter.drawRect(m_hoverRect.adjusted(1, 1, -1, -1));
+        }
         painter.restore();
     }
 
@@ -1227,7 +1258,10 @@ void CaptureWidget::resizeEvent(QResizeEvent* e)
     QWidget::resizeEvent(e);
     m_context.widgetOffset = mapToGlobal(QPoint(0, 0));
     if (!m_context.fullscreen) {
-        m_panel->setFixedHeight(height());
+        if (!m_editMode) {
+            // The editor sizes its docked panel to the visible viewport
+            m_panel->setFixedHeight(height());
+        }
         m_buttonHandler->updateScreenRegions(rect());
     }
 }
@@ -1270,6 +1304,7 @@ void CaptureWidget::initPanel()
     if (ConfigHandler().showSidePanelButton()) {
         auto* panelToggleButton =
           new OrientablePushButton(tr("Tool Settings"), this);
+        m_panelToggleButton = panelToggleButton;
         makeChild(panelToggleButton);
         panelToggleButton->setColor(m_uiColor);
         panelToggleButton->setOrientation(
@@ -1391,15 +1426,31 @@ void CaptureWidget::showAppUpdateNotification(const QString& appLatestVersion,
 }
 #endif
 
+// Outline the target under the cursor as soon as the picker appears, not only
+// after the first mouse move.
+void CaptureWidget::showEvent(QShowEvent* event)
+{
+    QWidget::showEvent(event);
+    if (m_hoverEnabled) {
+        QTimer::singleShot(0, this, [this]() {
+            updateHoverWindow(mapFromGlobal(QCursor::pos()));
+        });
+    }
+}
+
 void CaptureWidget::initSelection()
 {
     // Be mindful of the order of statements, so that slots are called properly
     m_selection = new SelectionWidget(m_uiColor, this);
+    m_selection->setPickerStyle(m_pickerStyle);
+    m_selection->setLocked(m_editMode);
     QRect initialSelection = m_context.request.initialSelection();
     connect(m_selection, &SelectionWidget::geometryChanged, this, [this]() {
         QRect constrainedToCaptureArea =
           m_selection->geometry().intersected(rect());
-        m_context.selection = extendedRect(constrainedToCaptureArea);
+        m_context.selection = m_editMode
+                                ? m_editImageRectDevice
+                                : extendedRect(constrainedToCaptureArea);
 
         m_buttonHandler->hide();
         updateCursor();
@@ -1431,7 +1482,10 @@ void CaptureWidget::initSelection()
             OverlayMessage::push(m_helpMessage);
         }
     });
-    if (!initialSelection.isNull()) {
+    if (m_editMode) {
+        // Already logical points: the image rect inside the canvas
+        initialSelection = m_editImageRectLogical;
+    } else if (!initialSelection.isNull()) {
         const qreal scale = m_context.screenshot.devicePixelRatio();
         initialSelection.setTop(initialSelection.top() / scale);
         initialSelection.setBottom(initialSelection.bottom() / scale);
@@ -1441,7 +1495,9 @@ void CaptureWidget::initSelection()
     m_selection->setGeometry(initialSelection);
     m_selection->setVisible(!initialSelection.isNull());
     if (!initialSelection.isNull()) {
-        m_context.selection = extendedRect(m_selection->geometry());
+        m_context.selection = m_editMode
+                                ? m_editImageRectDevice
+                                : extendedRect(m_selection->geometry());
         emit m_selection->geometrySettled();
     }
 }
@@ -1676,6 +1732,9 @@ void CaptureWidget::onMoveCaptureToolDown(int captureToolIndex)
 
 void CaptureWidget::selectAll()
 {
+    if (m_editMode) {
+        return;
+    }
     m_selection->show();
     m_selection->setGeometry(rect());
     emit m_selection->geometrySettled();
@@ -1801,7 +1860,7 @@ void CaptureWidget::deleteCurrentTool()
 
 void CaptureWidget::updateSizeIndicator()
 {
-    if (m_config.showSelectionGeometry()) {
+    if ((m_config.showSelectionGeometry() || m_pickerStyle) && !m_editMode) {
         showxywh();
     }
     if (m_sizeIndButton) {
@@ -2021,6 +2080,21 @@ QList<QShortcut*> CaptureWidget::newShortcut(const QKeySequence& key,
     return shortcuts;
 }
 
+QVector<CaptureToolButton*> CaptureWidget::toolbarButtons() const
+{
+    return m_buttonHandler->buttons();
+}
+
+QWidget* CaptureWidget::sidePanel() const
+{
+    return m_panel;
+}
+
+QWidget* CaptureWidget::sidePanelToggle() const
+{
+    return m_panelToggleButton;
+}
+
 void CaptureWidget::togglePanel()
 {
     m_panel->toggle();
@@ -2093,8 +2167,10 @@ void CaptureWidget::cancel()
         delete m_toolWidget;
         m_toolWidget = nullptr;
     }
-    m_selection->hide();
-    emit m_selection->geometrySettled();
+    if (!m_editMode) {
+        m_selection->hide();
+        emit m_selection->geometrySettled();
+    }
 }
 
 QRect CaptureWidget::extendedSelection() const
@@ -2153,13 +2229,12 @@ bool CaptureWidget::hoverWindowActive() const
 void CaptureWidget::updateHoverWindow(const QPoint& localPos)
 {
     QRect newRect;
-    if (!m_windowCandidates.isEmpty() && !m_selection->isVisible() &&
-        !m_activeButton) {
-        const auto hit = windowAt(m_windowCandidates, mapToGlobal(localPos));
-        if (hit) {
-            newRect =
-              toOverlayRect(hit->bounds, mapToGlobal(QPoint(0, 0)), rect());
-        }
+    if (m_hoverEnabled && !m_selection->isVisible() && !m_activeButton) {
+        // Falls back to the whole screen when no window is under the cursor
+        newRect = hoverTarget(m_windowCandidates,
+                              mapToGlobal(localPos),
+                              mapToGlobal(QPoint(0, 0)),
+                              rect());
     }
     if (newRect != m_hoverRect) {
         m_hoverRect = newRect;
@@ -2177,6 +2252,72 @@ void CaptureWidget::selectHoveredWindow()
     m_selection->setGeometry(windowRect);
     emit m_selection->geometrySettled();
     update();
+}
+
+// The image sits at kEditMargin inside the canvas. imageRectDevice is in
+// device pixels of the canvas (exactly the image's own pixels, so the export
+// has the original size), imageRectLogical is in widget points.
+void CaptureWidget::initEditCanvas(const QPixmap& image)
+{
+    const qreal dpr =
+      image.devicePixelRatio() >= 1.0 ? image.devicePixelRatio() : 1.0;
+    QScreen* screen = QGuiApplication::screenAt(QCursor::pos());
+    if (!screen) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    const EditCanvas plan = planEditCanvas(
+      image.size(), dpr, kEditMargin, screen->availableGeometry());
+    const int marginDevice = qRound(kEditMargin * dpr);
+
+    // Compose at ratio 1 so the image lands on whole device pixels
+    QPixmap source = image;
+    source.setDevicePixelRatio(1.0);
+    QPixmap canvas(qRound(plan.canvasLogical.width() * dpr),
+                   qRound(plan.canvasLogical.height() * dpr));
+    canvas.fill(QColor(0x2b, 0x2b, 0x2b));
+    {
+        QPainter painter(&canvas);
+        painter.drawPixmap(QPoint(marginDevice, marginDevice), source);
+    }
+    canvas.setDevicePixelRatio(dpr);
+
+    m_context.screenshot = canvas;
+    m_context.origScreenshot = canvas;
+    m_editImageRectDevice = QRect(QPoint(marginDevice, marginDevice),
+                                  image.size());
+    m_editImageRectLogical = plan.imageRectLogical;
+    setFixedSize(plan.canvasLogical);
+}
+
+// Small dark label near the cursor while dragging a selection. The size is in
+// device pixels (what the saved image will measure); the position is in widget
+// points.
+void CaptureWidget::drawPickerSizeLabel(QPainter* painter)
+{
+    const QRect selection = m_selection->geometry().normalized();
+    const qreal scale = m_context.screenshot.devicePixelRatio();
+    const QString text =
+      QStringLiteral("%1 x %2")
+        .arg(static_cast<int>(selection.width() * scale))
+        .arg(static_cast<int>(selection.height() * scale));
+    const QFontMetrics fm = painter->fontMetrics();
+    QRect box = fm.boundingRect(text).adjusted(0, 0, 12, 8);
+    box.moveTopLeft(m_context.mousePos + QPoint(16, 16));
+    // Keep the label on the widget
+    if (box.right() > width()) {
+        box.moveRight(m_context.mousePos.x() - 8);
+    }
+    if (box.bottom() > height()) {
+        box.moveBottom(m_context.mousePos.y() - 8);
+    }
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(pickerLabelBackground());
+    painter->drawRoundedRect(box, 4, 4);
+    painter->setPen(Qt::white);
+    painter->drawText(box, Qt::AlignCenter, text);
+    painter->restore();
 }
 
 void CaptureWidget::drawInactiveRegion(QPainter* painter)

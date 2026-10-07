@@ -5,6 +5,7 @@
 #include "core/flameshot.h"
 #include "core/flameshotdaemon.h"
 #include "platform/videothumbnail.h"
+#include "platform/windowspace.h"
 
 #include <QCursor>
 #include <QDesktopServices>
@@ -44,6 +45,7 @@ void CaptureHistoryWindow::showWindow()
     } else {
         s_instance->reload();
     }
+    showOnActiveSpace(s_instance);
     s_instance->show();
     s_instance->raise();
     s_instance->activateWindow();
@@ -243,10 +245,9 @@ void CaptureHistoryWindow::openCurrent()
       QUrl::fromLocalFile(item->data(kPathRole).toString()));
 }
 
-// The editor backdrop is screen sized, so an image larger than the screen is
-// scaled down to fit (aspect kept) and centered. Saving overwrites the file
-// only when no resampling happened; otherwise it saves a numbered copy so the
-// original keeps its full resolution. globalRect is in global logical points.
+// Opens the file in its own editor window. A file has no device pixel ratio,
+// so it takes the one of the screen under the cursor: one image pixel is one
+// device pixel and saving overwrites the file without resampling.
 void CaptureHistoryWindow::editCurrent()
 {
     QListWidgetItem* item = currentItemOrNull();
@@ -262,19 +263,9 @@ void CaptureHistoryWindow::editCurrent()
     if (!screen) {
         screen = QGuiApplication::primaryScreen();
     }
-    const QRect geo = screen->geometry();
-    const qreal dpr = screen->devicePixelRatio();
-    QSize logical(qRound(pixmap.width() / dpr), qRound(pixmap.height() / dpr));
-    if (logical.width() > geo.width() || logical.height() > geo.height()) {
-        logical = logical.scaled(geo.size(), Qt::KeepAspectRatio);
-    }
-    QRect rect(QPoint(0, 0), logical);
-    rect.moveCenter(geo.center());
-    Flameshot::instance()->editSavedCapture(
-      path,
-      pixmap,
-      rect,
-      editKeepsOriginalPixels(pixmap.size(), logical, dpr));
+    QPixmap image = pixmap;
+    image.setDevicePixelRatio(screen->devicePixelRatio());
+    Flameshot::instance()->editSavedCapture(path, image);
     close();
 }
 

@@ -57,25 +57,3 @@ QRect globalSelectionRect(const QRect& localLogical, const QPoint& overlayTopLef
 {
     return localLogical.translated(overlayTopLeft);
 }
-
-EditGeometry editGeometry(const QRect& globalLogical,
-                          const QRect& screenGeometry,
-                          qreal devicePixelRatio)
-{
-    const QRect local = globalLogical.translated(-screenGeometry.topLeft());
-    const QRect device(qRound(local.x() * devicePixelRatio),
-                       qRound(local.y() * devicePixelRatio),
-                       qRound(local.width() * devicePixelRatio),
-                       qRound(local.height() * devicePixelRatio));
-    return { local, device };
-}
-
-bool editKeepsOriginalPixels(const QSize& imagePixels,
-                             const QSize& logicalSize,
-                             qreal devicePixelRatio)
-{
-    return qRound(logicalSize.width() * devicePixelRatio) ==
-             imagePixels.width() &&
-           qRound(logicalSize.height() * devicePixelRatio) ==
-             imagePixels.height();
-}

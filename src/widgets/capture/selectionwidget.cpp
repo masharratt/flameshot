@@ -4,6 +4,7 @@
 #include "selectionwidget.h"
 #include "utils/globalvalues.h"
 #include "widgets/capture/capturetoolbutton.h"
+#include "widgets/capture/pickerstyle.h"
 
 #include <QApplication>
 #include <QEvent>
@@ -57,6 +58,9 @@ SelectionWidget::SideType SelectionWidget::getMouseSide(
         return NO_SIDE;
     }
     QPoint localPos = mapFromParent(mousePos);
+    if (m_locked) {
+        return rect().contains(localPos) ? CENTER : NO_SIDE;
+    }
     if (m_TLArea.contains(localPos)) {
         return TOPLEFT_SIDE;
     } else if (m_TRArea.contains(localPos)) {
@@ -104,6 +108,18 @@ SelectionWidget::SideType getProperSide(SelectionWidget::SideType side,
     }
 
     return (SideType)intSide;
+}
+
+void SelectionWidget::setPickerStyle(bool picker)
+{
+    m_pickerStyle = picker;
+    update();
+}
+
+void SelectionWidget::setLocked(bool locked)
+{
+    m_locked = locked;
+    update();
 }
 
 void SelectionWidget::setIgnoreMouse(bool ignore)
@@ -156,6 +172,9 @@ QRect SelectionWidget::rect() const
 
 bool SelectionWidget::eventFilter(QObject* obj, QEvent* event)
 {
+    if (m_locked) {
+        return false;
+    }
     if (m_ignoreMouse && dynamic_cast<QMouseEvent*>(event)) {
         m_activeSide = NO_SIDE;
         unsetCursor();
@@ -387,6 +406,15 @@ void SelectionWidget::paintEvent(QPaintEvent*)
     if (!p.isActive()) {
         return;
     }
+    if (m_locked) {
+        p.setPen(QColor(128, 128, 128));
+        p.drawRect(rect() + QMargins(0, 0, -1, -1));
+        return;
+    }
+    if (m_pickerStyle) {
+        drawPickerOutline(&p, rect());
+        return;
+    }
     p.setPen(m_color);
     p.drawRect(rect() + QMargins(0, 0, -1, -1));
     p.setRenderHint(QPainter::Antialiasing);
@@ -555,6 +583,9 @@ void SelectionWidget::updateCursor()
 
 void SelectionWidget::setGeometryByKeyboard(const QRect& r)
 {
+    if (m_locked) {
+        return;
+    }
     static QTimer timer;
     QRect rectangle = r.intersected(parentWidget()->rect());
     if (rectangle.width() <= 0) {

@@ -58,6 +58,7 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "utils/screengrabber.h"
 #include "utils/screenshotsaver.h"
 #include "widgets/capture/capturewidget.h"
+#include "widgets/editorwindow.h"
 #include "widgets/capturehistorywindow.h"
 #include "widgets/capturelauncher.h"
 #include "widgets/capturetoast.h"
@@ -662,9 +663,10 @@ public:
         // The capture window may still be shutting down when this runs, and
         // gui() refuses to open while it exists, so wait for the event loop.
         QPointer<Flameshot> flameshot(m_flameshot);
-        QTimer::singleShot(0, m_flameshot, [flameshot, path, pixmap, globalRect]() {
+        Q_UNUSED(globalRect)
+        QTimer::singleShot(0, m_flameshot, [flameshot, path, pixmap]() {
             if (flameshot) {
-                flameshot->editSavedCapture(path, pixmap, globalRect, true);
+                flameshot->editSavedCapture(path, pixmap);
             }
         });
     }
@@ -846,33 +848,17 @@ void Flameshot::exportCapture(const QPixmap& capture,
     }
 }
 
-void Flameshot::editSavedCapture(const QString& path,
-                                 const QPixmap& capture,
-                                 const QRect& globalRect,
-                                 bool overwrite)
+void Flameshot::editSavedCapture(const QString& path, const QPixmap& capture)
 {
-    QScreen* screen = QGuiApplication::screenAt(globalRect.center());
-    if (!screen) {
-        screen = QGuiApplication::primaryScreen();
-    }
-    const qreal dpr = screen->devicePixelRatio();
-    const EditGeometry geo = editGeometry(globalRect, screen->geometry(), dpr);
-
-    // Screen sized backdrop with the captured image drawn where it was taken
-    QPixmap backdrop(screen->size() * dpr);
-    backdrop.setDevicePixelRatio(dpr);
-    backdrop.fill(Qt::black);
-    {
-        QPainter painter(&backdrop);
-        painter.drawPixmap(geo.localLogical, capture);
-    }
-
-    CaptureRequest req(CaptureRequest::GRAPHICAL_MODE);
-    req.setPresetScreenshot(backdrop);
-    req.setInitialSelection(geo.initialSelectionDevice);
-    req.addSaveTask(path);
-    req.setOverwriteExisting(overwrite);
-    gui(req);
+    auto* editor = new EditorWindow(path, capture);
+    m_editorWindows.append(editor);
+    connect(editor, &QObject::destroyed, this, [this]() {
+        m_editorWindows.removeAll(nullptr);
+    });
+    // No showDockIcon() here: switching the app to a regular Dock app while
+    // the user is in another app's full-screen Space makes macOS jump to the
+    // desktop Space instead of showing the editor where the user is.
+    editor->present();
 }
 
 void Flameshot::setExternalWidget(bool b)

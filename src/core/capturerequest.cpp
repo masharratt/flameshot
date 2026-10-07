@@ -48,9 +48,9 @@ QRect CaptureRequest::initialSelection() const
     return m_initialSelection;
 }
 
-QPixmap CaptureRequest::presetScreenshot() const
+QPixmap CaptureRequest::editImage() const
 {
-    return m_presetScreenshot;
+    return m_editImage;
 }
 
 bool CaptureRequest::overwriteExisting() const
@@ -88,9 +88,9 @@ void CaptureRequest::setCaptureFirst(bool captureFirst)
     m_captureFirst = captureFirst;
 }
 
-void CaptureRequest::setPresetScreenshot(const QPixmap& screenshot)
+void CaptureRequest::setEditImage(const QPixmap& image)
 {
-    m_presetScreenshot = screenshot;
+    m_editImage = image;
 }
 
 void CaptureRequest::setOverwriteExisting(bool overwrite)

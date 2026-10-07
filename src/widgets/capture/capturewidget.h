@@ -99,9 +99,16 @@ public:
     void removeToolObject(int index = -1);
     void showxywh();
 
+    // Windowed editor hooks: the tool buttons and the side panel pieces so the
+    // host window can place them outside the scrolled canvas.
+    QVector<CaptureToolButton*> toolbarButtons() const;
+    QWidget* sidePanel() const;
+    QWidget* sidePanelToggle() const;
+
 protected:
     void paintEvent(QPaintEvent* paintEvent) override;
     void mousePressEvent(QMouseEvent* mouseEvent) override;
+    void showEvent(QShowEvent* event) override;
     void mouseMoveEvent(QMouseEvent* mouseEvent) override;
     void mouseReleaseEvent(QMouseEvent* mouseEvent) override;
     void mouseDoubleClickEvent(QMouseEvent* event) override;
@@ -151,6 +158,10 @@ private:
     void drawInactiveRegion(QPainter* painter);
     void updateHoverWindow(const QPoint& localPos);
     bool hoverWindowActive() const;
+    // Windowed edit mode: builds the canvas (image plus margin) from the
+    // request's edit image
+    void initEditCanvas(const QPixmap& image);
+    void drawPickerSizeLabel(QPainter* painter);
     void selectHoveredWindow();
     void drawToolsData(bool drawSelection = true);
     void drawObjectSelection();
@@ -201,6 +212,7 @@ private:
 
     ButtonHandler* m_buttonHandler;
     UtilityPanel* m_panel;
+    QWidget* m_panelToggleButton{ nullptr };
     SidePanelWidget* m_sidePanel;
     ColorPicker* m_colorPicker;
     ConfigHandler m_config;
@@ -241,6 +253,18 @@ private:
     // m_hoverRect is overlay-local logical points (widget coordinates, the
     // same space as m_selection->geometry()), never device pixels.
     QList<WindowInfo> m_windowCandidates;
+    bool m_hoverEnabled{ false };
     QRect m_hoverRect;
     bool m_windowPressPending{ false };
+
+    // ShareX-style picker look (see pickerstyle.h)
+    bool m_pickerStyle{ false };
+
+    // Windowed edit mode. The image sits inside the canvas screenshot; the
+    // selection is exactly the image rect and cannot change.
+    // m_editImageRectLogical is logical points (widget coordinates),
+    // m_editImageRectDevice is device pixels in m_context.screenshot.
+    bool m_editMode{ false };
+    QRect m_editImageRectLogical;
+    QRect m_editImageRectDevice;
 };

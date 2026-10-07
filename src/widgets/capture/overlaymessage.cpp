@@ -15,6 +15,13 @@ OverlayMessage::OverlayMessage(QWidget* parent, const QRect& targetArea)
 {
     // NOTE: do not call the static functions from the constructor
     m_instance = this;
+    // The windowed editor can outlive a capture overlay (or the reverse), so
+    // never leave the singleton pointing at a destroyed widget
+    connect(this, &QObject::destroyed, [this]() {
+        if (m_instance == this) {
+            m_instance = nullptr;
+        }
+    });
     m_messageStack.push(QString()); // Default message is empty
     setAttribute(Qt::WA_TransparentForMouseEvents);
     setAttribute(Qt::WA_AlwaysStackOnTop);
@@ -46,6 +53,9 @@ void OverlayMessage::init(QWidget* parent, const QRect& targetArea)
  */
 void OverlayMessage::push(const QString& msg)
 {
+    if (m_instance == nullptr) {
+        return;
+    }
     m_instance->m_messageStack.push(msg);
     m_instance->setText(m_instance->m_messageStack.top());
     setVisibility(true);
@@ -53,6 +63,9 @@ void OverlayMessage::push(const QString& msg)
 
 void OverlayMessage::pop()
 {
+    if (m_instance == nullptr) {
+        return;
+    }
     if (m_instance->m_messageStack.size() > 1) {
         m_instance->m_messageStack.pop();
     }
@@ -63,6 +76,9 @@ void OverlayMessage::pop()
 
 void OverlayMessage::setVisibility(bool visible)
 {
+    if (m_instance == nullptr) {
+        return;
+    }
     m_instance->updateGeometry();
     m_instance->setVisible(visible);
 }

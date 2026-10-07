@@ -40,3 +40,16 @@ PressKind classifyPress(QPoint press, QPoint current, int threshold)
     return (current - press).manhattanLength() > threshold ? PressKind::Drag
                                                            : PressKind::Click;
 }
+
+QRect hoverTarget(const QList<WindowInfo>& frontToBack,
+                  const QPoint& globalPos,
+                  const QPoint& overlayTopLeft,
+                  const QRect& overlayRect)
+{
+    const auto hit = windowAt(frontToBack, globalPos);
+    if (!hit) {
+        return overlayRect;
+    }
+    const QRect r = toOverlayRect(hit->bounds, overlayTopLeft, overlayRect);
+    return r.isEmpty() ? overlayRect : r;
+}

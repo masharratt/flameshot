@@ -1,6 +1,6 @@
 # Feature Status (masharratt/flameshot fork)
 
-**Last Updated:** 2026-10-07 (fixed duplicate saves and history entries after Edit)
+**Last Updated:** 2026-10-07 (ShareX-style picker and windowed editor)
 
 | Token | Meaning |
 |-------|---------|
@@ -16,8 +16,8 @@ Plan: `planning/PLAN_sharex_fork.md` (local, not committed).
 |---------|--------|-------------|--------------|-------------------|
 | Upstream capture + editor | prod | Flameshot 14/15 region capture with annotation editor. | Qt 6 | Editor must finish before capture is saved. |
 | Unit test harness | beta | QtTest executables registered with CTest under `tests/unit`. | Qt6::Test | Covers strfparse, ruler math, capture-first request, toast stacking, window picking, history store, action lists, hotkey helpers and image effects. |
-| Capture-first workflow | beta | Hotkey and tray captures save and copy on selection release, then show a toast with Edit, Copy, Pin and Show in Finder. Option `captureFirst`, default on. | Unit test harness | Not yet checked by hand. Edit reopens the editor on a black backdrop around the capture. |
-| Hover window detection | beta | Before a selection exists, hovering outlines the window under the cursor; a click selects it, a drag over 4 px draws a region. Option `hoverWindowDetection`, default on. | macOS CGWindowList | Not yet checked by hand. Highlight appears after the first mouse move. macOS only. |
+| Capture-first workflow | beta | Hotkey and tray captures save and copy on selection release, then show a toast with Edit, Copy, Pin and Show in Finder. Edit opens a normal window with a fixed toolbar on the active Space. Option `captureFirst`, default on. | Unit test harness | Edit window has no Dock icon. Esc closes it only when the canvas has focus. |
+| Hover window detection | beta | Picker shows a dotted outline around the window under the cursor, or the whole screen when no window is there; a click captures it, a drag over 4 px draws a region. No purple help box in picker mode. Option `hoverWindowDetection`, default on. | macOS CGWindowList | macOS only. |
 | Capture history | beta | Every save is logged to history.jsonl; a thumbnail window (tray item or Cmd+Shift+Y) offers Open, Edit, Copy, Show in Finder and Remove. Option `captureHistoryMax`, default 500. | Capture-first workflow | Not yet checked by hand. Editing an image larger than the screen saves a numbered copy. |
 | Per-hotkey after-capture actions | beta | TAKE_SCREENSHOT and CAPTURE_AND_EDIT each run a configurable action list (save, copy image, copy path, open editor, pin, effects, toast) set on the Workflows tab. Hotkeys re-register live when changed. | Capture-first workflow | Not yet checked by hand. |
 | Image effects | beta | Border, rounded corners and drop shadow applied by the Apply Effects action, configured with a live preview on the Workflows tab. | Per-hotkey actions | Not yet checked by hand. Effects needing transparency save as PNG only on the workflow save path. |

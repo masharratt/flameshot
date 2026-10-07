@@ -26,6 +26,9 @@ ButtonHandler::ButtonHandler(QObject* parent)
 
 void ButtonHandler::hide()
 {
+    if (m_toolbarMode) {
+        return;
+    }
     for (CaptureToolButton* b : m_vectorButtons) {
         b->hide();
     }
@@ -34,6 +37,12 @@ void ButtonHandler::hide()
 void ButtonHandler::show()
 {
     if (m_vectorButtons.isEmpty() || m_vectorButtons.first()->isVisible()) {
+        return;
+    }
+    if (m_toolbarMode) {
+        for (CaptureToolButton* b : m_vectorButtons) {
+            b->show();
+        }
         return;
     }
     for (CaptureToolButton* b : m_vectorButtons) {
@@ -69,6 +78,9 @@ size_t ButtonHandler::size() const
 // the original in the center.
 void ButtonHandler::updatePosition(const QRect& selection)
 {
+    if (m_toolbarMode) {
+        return;
+    }
     resetRegionTrack();
     const int vecLength = m_vectorButtons.size();
     if (vecLength == 0) {
@@ -366,6 +378,16 @@ void ButtonHandler::setButtons(const QVector<CaptureToolButton*>& v)
     m_vectorButtons = v;
     m_buttonBaseSize = GlobalValues::buttonBaseSize();
     m_buttonExtendedSize = m_buttonBaseSize + m_separator;
+}
+
+const QVector<CaptureToolButton*>& ButtonHandler::buttons() const
+{
+    return m_vectorButtons;
+}
+
+void ButtonHandler::setToolbarMode(bool enabled)
+{
+    m_toolbarMode = enabled;
 }
 
 bool ButtonHandler::contains(const QPoint& p) const

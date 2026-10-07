@@ -36,22 +36,3 @@ bool shouldApplyLastRegion(const CaptureRequest& req,
 // Selection in global logical points, from the selection in overlay-local
 // logical points and the overlay window's top-left.
 QRect globalSelectionRect(const QRect& localLogical, const QPoint& overlayTopLeft);
-
-// Geometry needed to reopen the editor on a saved capture. localLogical is
-// where to draw the capture on a screen-sized backdrop; initialSelectionDevice
-// is the CaptureRequest initial selection, which is in device pixels.
-struct EditGeometry
-{
-    QRect localLogical;
-    QRect initialSelectionDevice;
-};
-EditGeometry editGeometry(const QRect& globalLogical,
-                          const QRect& screenGeometry,
-                          qreal devicePixelRatio);
-
-// True when an image of imagePixels shown in the editor at logicalSize on a
-// screen with devicePixelRatio maps one to one onto its pixels, so saving the
-// edit may overwrite the original file without resampling it.
-bool editKeepsOriginalPixels(const QSize& imagePixels,
-                             const QSize& logicalSize,
-                             qreal devicePixelRatio);

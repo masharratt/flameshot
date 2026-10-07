@@ -83,8 +83,7 @@ CaptureToast::CaptureToast(const QString& path,
         });
     } else {
         addButton(tr("Edit"), [this]() {
-            Flameshot::instance()->editSavedCapture(
-              m_path, m_capture, m_globalRect);
+            Flameshot::instance()->editSavedCapture(m_path, m_capture);
             close();
         });
         addButton(tr("Copy"), [this]() {

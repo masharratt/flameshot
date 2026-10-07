@@ -15,6 +15,7 @@
 class ConfigWindow;
 class InfoWindow;
 class CaptureLauncher;
+class EditorWindow;
 class QTimer;
 class QWidget;
 class RecordingController;
@@ -91,12 +92,10 @@ public slots:
     // Record hotkey or menu item: picks an area, or stops a running recording
     void toggleRecording(CaptureRequest::RecordMode mode);
     void requestCapture(const CaptureRequest& request);
-    // Reopen a saved capture in the editor. Saving overwrites the same file
-    // when overwrite is true, otherwise it saves a numbered copy beside it.
-    void editSavedCapture(const QString& path,
-                          const QPixmap& capture,
-                          const QRect& globalRect,
-                          bool overwrite = true);
+    // Reopen a saved capture in its own editor window. Saving overwrites the
+    // file at path. capture is in device pixels and carries its own device
+    // pixel ratio. Editor windows are independent of the capture overlay.
+    void editSavedCapture(const QString& path, const QPixmap& capture);
     void exportCapture(const QPixmap& p,
                        QRect& selection,
                        const CaptureRequest& req);
@@ -113,6 +112,7 @@ private:
     bool m_haveExternalWidget;
 
     QPointer<CaptureWidget> m_captureWindow;
+    QList<QPointer<EditorWindow>> m_editorWindows;
     QPointer<InfoWindow> m_infoWindow;
     QPointer<CaptureLauncher> m_launcherWindow;
     QPointer<ConfigWindow> m_configWindow;

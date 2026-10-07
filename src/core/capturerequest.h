@@ -51,7 +51,9 @@ public:
     CaptureMode captureMode() const;
     ExportTask tasks() const;
     QRect initialSelection() const;
-    QPixmap presetScreenshot() const;
+    // Image to edit in the windowed editor (null for normal captures). Its
+    // device pixel ratio is the canvas ratio.
+    QPixmap editImage() const;
     bool overwriteExisting() const;
     bool captureFirst() const;
     QRect capturedGlobalRect() const;
@@ -64,8 +66,8 @@ public:
     void addSaveTask(const QString& path = QString());
     void addPinTask(const QRect& pinWindowGeometry);
     void setInitialSelection(const QRect& selection);
-    // Use this pixmap instead of grabbing the screen (used by the toast Edit).
-    void setPresetScreenshot(const QPixmap& screenshot);
+    // Open the windowed editor on this image instead of grabbing the screen.
+    void setEditImage(const QPixmap& image);
     // Save to the exact path given, replacing the file instead of numbering.
     void setOverwriteExisting(bool overwrite);
     // Marks a request made by the capture-first hotkey or tray path.
@@ -86,7 +88,7 @@ private:
     ExportTask m_tasks;
     QVariant m_data;
     QRect m_pinWindowGeometry, m_initialSelection;
-    QPixmap m_presetScreenshot;
+    QPixmap m_editImage;
     bool m_overwriteExisting = false;
     bool m_captureFirst = false;
     QRect m_capturedGlobalRect;

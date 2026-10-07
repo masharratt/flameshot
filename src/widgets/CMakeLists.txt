@@ -12,6 +12,7 @@ target_sources(
         capturetoast.h
         recordingcontrol.h
         capturehistorywindow.h
+        editorwindow.h
         toaststack.h
         draggablewidgetmaker.h
         imagelabel.h
@@ -44,6 +45,8 @@ target_sources(
         capturetoast.cpp
         recordingcontrol.cpp
         capturehistorywindow.cpp
+        editorwindow.cpp
+        editcanvas.cpp
         toaststack.cpp
         draggablewidgetmaker.cpp
         imagelabel.cpp

@@ -189,6 +189,26 @@ private slots:
         QCOMPARE(classifyPress({ 0, 0 }, { 8, 0 }, 8), PressKind::Click);
         QCOMPARE(classifyPress({ 0, 0 }, { 9, 0 }, 8), PressKind::Drag);
     }
+
+    // With no window under the cursor (menu bar, desktop, screen corner) the
+    // target is the whole overlay, so a click takes a full-screen capture.
+    void hoverTargetFallsBackToWholeScreen()
+    {
+        const QList<WindowInfo> list = { win(QRect(100, 100, 400, 300), 1) };
+        const QRect overlay(0, 0, 1512, 982);
+        QCOMPARE(hoverTarget(list, QPoint(2, 2), QPoint(0, 0), overlay), overlay);
+        QCOMPARE(hoverTarget({}, QPoint(2, 2), QPoint(0, 0), overlay), overlay);
+    }
+
+    void hoverTargetUsesWindowUnderCursor()
+    {
+        const QList<WindowInfo> list = { win(QRect(100, 100, 400, 300), 1) };
+        QCOMPARE(hoverTarget(list,
+                             QPoint(150, 150),
+                             QPoint(0, 0),
+                             QRect(0, 0, 1512, 982)),
+                 QRect(100, 100, 400, 300));
+    }
 };
 
 QTEST_MAIN(TestWindowPick)

@@ -32,6 +32,11 @@ public:
 
     void setIgnoreMouse(bool ignore);
     void setIdleCentralCursor(const QCursor& cursor);
+    // ShareX-style outline: no handles, white line with a dark outer line
+    void setPickerStyle(bool picker);
+    // Fixed selection (windowed editor): ignores the mouse and keyboard, is
+    // drawn as a thin neutral line and has no handles
+    void setLocked(bool locked);
 
     void setGeometryAnimated(const QRect& r);
     void setGeometry(const QRect& r);
@@ -92,6 +97,8 @@ private:
     SideType m_activeSide;
     QCursor m_idleCentralCursor;
     bool m_ignoreMouse;
+    bool m_pickerStyle = false;
+    bool m_locked = false;
     bool m_mouseStartMove;
     float m_aspectRatio;
 

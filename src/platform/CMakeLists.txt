@@ -5,6 +5,7 @@ target_sources(flameshot PRIVATE
     screenrecorder.h
     gifencoder.h
     videothumbnail.h
+    windowspace.h
 )
 
 if (APPLE)
@@ -13,11 +14,13 @@ if (APPLE)
         macos/screenrecorder.mm
         macos/gifencoder.mm
         macos/videothumbnail.mm
+        macos/windowspace_mac.mm
     )
     set_source_files_properties(
         macos/screenrecorder.mm
         macos/gifencoder.mm
         macos/videothumbnail.mm
+        macos/windowspace_mac.mm
         PROPERTIES COMPILE_FLAGS "-fobjc-arc")
     # ScreenCaptureKit is linked weakly so the app still starts on macOS
     # versions that lack it; recording is hidden there.
@@ -33,5 +36,6 @@ if (APPLE)
         "-weak_framework ScreenCaptureKit"
     )
 else ()
-    target_sources(flameshot PRIVATE windowlist_stub.cpp recording_stub.cpp)
+    target_sources(flameshot PRIVATE windowlist_stub.cpp recording_stub.cpp
+        windowspace_stub.cpp)
 endif ()

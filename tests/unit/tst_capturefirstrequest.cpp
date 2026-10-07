@@ -108,25 +108,6 @@ private slots:
         QVERIFY(!shouldApplyLastRegion(r, true));
     }
 
-    // Regression: Edit from the capture toast mixed device pixels and logical
-    // points, so on a Retina screen the editor preselected a region 2x/4x off.
-    void editGeometryOnRetinaSecondaryScreen()
-    {
-        const QRect screen(-1440, 0, 1440, 900);
-        const EditGeometry g =
-          editGeometry(QRect(-1000, 100, 200, 50), screen, 2.0);
-        QCOMPARE(g.localLogical, QRect(440, 100, 200, 50));
-        QCOMPARE(g.initialSelectionDevice, QRect(880, 200, 400, 100));
-    }
-
-    void editGeometryOnStandardPrimaryScreen()
-    {
-        const EditGeometry g = editGeometry(
-          QRect(10, 20, 30, 40), QRect(0, 0, 1920, 1080), 1.0);
-        QCOMPARE(g.localLogical, QRect(10, 20, 30, 40));
-        QCOMPARE(g.initialSelectionDevice, QRect(10, 20, 30, 40));
-    }
-
     void globalSelectionAddsOverlayOrigin()
     {
         QCOMPARE(globalSelectionRect(QRect(5, 6, 70, 80), QPoint(-1440, 0)),
@@ -139,16 +120,6 @@ private slots:
         QVERIFY(r.capturedGlobalRect().isNull());
         r.setCapturedGlobalRect(QRect(1, 2, 3, 4));
         QCOMPARE(r.capturedGlobalRect(), QRect(1, 2, 3, 4));
-    }
-
-    // Regression: editing a history image that had to be resized for the
-    // editor overwrote the original with the resized copy.
-    void overwriteOnlyWhenEditorKeepsEveryPixel()
-    {
-        QVERIFY(editKeepsOriginalPixels(QSize(400, 200), QSize(200, 100), 2.0));
-        QVERIFY(!editKeepsOriginalPixels(QSize(4000, 2000), QSize(1440, 720), 2.0));
-        QVERIFY(!editKeepsOriginalPixels(QSize(401, 200), QSize(201, 100), 2.0));
-        QVERIFY(editKeepsOriginalPixels(QSize(300, 150), QSize(300, 150), 1.0));
     }
 
     void recordHotkeysMapToRecordModes()
