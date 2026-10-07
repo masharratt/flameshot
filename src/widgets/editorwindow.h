@@ -34,6 +34,9 @@ public:
 protected:
     void resizeEvent(QResizeEvent* event) override;
     bool eventFilter(QObject* watched, QEvent* event) override;
+    // True while the user types into a text object or an input field, so
+    // single-key shortcuts must not fire
+    static bool typingInField();
 
 private:
     // Strip height for the current buttons laid out in `width` points

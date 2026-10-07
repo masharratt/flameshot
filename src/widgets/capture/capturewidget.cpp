@@ -1970,6 +1970,10 @@ void CaptureWidget::updateCursor()
 {
     if (m_colorPicker && m_colorPicker->isVisible()) {
         setCursor(Qt::ArrowCursor);
+    } else if (!m_bendDragging &&
+               bendableObjectWithHandleAt(mapFromGlobal(QCursor::pos()))) {
+        // Hovering a bend handle: show that it can be dragged
+        setCursor(Qt::OpenHandCursor);
     } else if (m_activeButton != nullptr &&
                activeButtonToolType() != CaptureTool::TYPE_MOVESELECTION) {
         setCursor(Qt::CrossCursor);

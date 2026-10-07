@@ -88,15 +88,17 @@ EditorWindow::EditorWindow(const QString& path, const QPixmap& image)
     dockSidePanel();
 
     new QShortcut(QKeySequence::Close, this, SLOT(close()));
-    // V selects, unless the user is typing into a text object or field
+    // V selects and E expands the canvas, unless the user is typing
     auto* selectShortcut = new QShortcut(QKeySequence(Qt::Key_V), this);
     connect(selectShortcut, &QShortcut::activated, this, [this]() {
-        QWidget* focus = QApplication::focusWidget();
-        if (m_capture && !qobject_cast<QTextEdit*>(focus) &&
-            !qobject_cast<QLineEdit*>(focus) &&
-            !qobject_cast<QPlainTextEdit*>(focus) &&
-            !qobject_cast<QAbstractSpinBox*>(focus)) {
+        if (m_capture && !typingInField()) {
             m_capture->deactivateTool();
+        }
+    });
+    auto* expandShortcut = new QShortcut(QKeySequence(Qt::Key_E), this);
+    connect(expandShortcut, &QShortcut::activated, this, [this]() {
+        if (m_capture && !typingInField()) {
+            m_capture->expandEditCanvas();
         }
     });
 
@@ -173,7 +175,7 @@ void EditorWindow::addExpandButton()
                               : PathInfo::blackIconPath();
     m_expandButton->setIcon(QIcon(iconDir + QStringLiteral("expand-canvas.svg")));
     m_expandButton->setIconSize(QSize(size, size) * 0.6);
-    m_expandButton->setToolTip(tr("Expand canvas"));
+    m_expandButton->setToolTip(tr("Expand canvas (E)"));
     connect(m_expandButton, &QPushButton::clicked, this, [this]() {
         if (m_capture) {
             m_capture->expandEditCanvas();
@@ -298,6 +300,15 @@ void EditorWindow::dockSidePanel()
     if (QWidget* toggle = m_capture->sidePanelToggle()) {
         toggle->show();
     }
+}
+
+bool EditorWindow::typingInField()
+{
+    QWidget* focus = QApplication::focusWidget();
+    return qobject_cast<QTextEdit*>(focus) ||
+           qobject_cast<QLineEdit*>(focus) ||
+           qobject_cast<QPlainTextEdit*>(focus) ||
+           qobject_cast<QAbstractSpinBox*>(focus);
 }
 
 bool EditorWindow::eventFilter(QObject* watched, QEvent* event)
