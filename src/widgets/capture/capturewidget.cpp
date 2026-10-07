@@ -18,6 +18,7 @@
 #include "utils/abstractlogger.h"
 #include "utils/screengrabber.h"
 #include "core/capturefirstrequest.h"
+#include "platform/windowpick.h"
 #include "utils/screenshotsaver.h"
 #include "widgets/capture/colorpicker.h"
 #include "widgets/capture/hovereventfilter.h"
@@ -31,6 +32,7 @@
 
 #include <QApplication>
 #include <QCheckBox>
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QFontMetrics>
 #include <QMessageBox>
@@ -128,6 +130,13 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
         } else {
             m_context.screenshot =
               grabber.grabEntireDesktop(ok, preSelectedMonitor);
+            // Snapshot the windows now, in step with the grab and before the
+            // overlay is shown. Skipped for a preset screenshot: the desktop
+            // no longer matches it.
+            if (m_config.hoverWindowDetection()) {
+                m_windowCandidates = filterCandidates(
+                  onScreenWindows(), QCoreApplication::applicationPid());
+            }
         }
         if (!ok) {
             // Error already logged in ScreenGrabber
@@ -788,6 +797,15 @@ void CaptureWidget::paintEvent(QPaintEvent* paintEvent)
     // draw inactive region
     drawInactiveRegion(&painter);
 
+    if (hoverWindowActive()) {
+        painter.save();
+        painter.setClipping(false);
+        painter.setBrush(Qt::NoBrush);
+        painter.setPen(QPen(m_uiColor, 2));
+        painter.drawRect(m_hoverRect.adjusted(1, 1, -1, -1));
+        painter.restore();
+    }
+
     if (!isActiveWindow()) {
         drawErrorMessage(
           tr("Flameshot has lost focus. Keyboard shortcuts won't "
@@ -889,6 +907,10 @@ void CaptureWidget::mousePressEvent(QMouseEvent* e)
     m_startMove = false;
     m_startMovePos = QPoint();
     m_mousePressedPos = e->pos();
+    m_windowPressPending = e->button() == Qt::LeftButton &&
+                           !m_hoverRect.isEmpty() &&
+                           !m_selection->isVisible() && !m_activeButton &&
+                           !m_colorPicker->isVisible();
     m_activeToolOffsetToMouseOnStart = QPoint();
     if (m_colorPicker->isVisible()) {
         updateCursor();
@@ -973,6 +995,15 @@ void CaptureWidget::mouseMoveEvent(QMouseEvent* e)
     }
 
     m_context.mousePos = e->pos();
+    if (e->buttons() == Qt::NoButton) {
+        updateHoverWindow(e->pos());
+    } else if (m_windowPressPending &&
+               classifyPress(m_mousePressedPos, e->pos()) == PressKind::Drag) {
+        // Moved past the click threshold: ordinary region drag, no highlight
+        m_windowPressPending = false;
+        m_hoverRect = QRect();
+        update();
+    }
     if (e->buttons() != Qt::LeftButton) {
         updateTool(activeButtonTool());
         updateCursor();
@@ -1038,6 +1069,11 @@ void CaptureWidget::mouseMoveEvent(QMouseEvent* e)
 
 void CaptureWidget::mouseReleaseEvent(QMouseEvent* e)
 {
+    const bool windowClick =
+      m_windowPressPending && e->button() == Qt::LeftButton &&
+      !m_hoverRect.isEmpty() &&
+      classifyPress(m_mousePressedPos, e->pos()) == PressKind::Click;
+    m_windowPressPending = false;
     if (e->button() == Qt::LeftButton && m_colorPicker->isVisible()) {
         // Color picker
         if (m_colorPicker->isVisible() && m_panel->activeLayerIndex() >= 0 &&
@@ -1068,6 +1104,12 @@ void CaptureWidget::mouseReleaseEvent(QMouseEvent* e)
     }
     m_mouseIsClicked = false;
     m_activeToolIsMoved = false;
+
+    if (windowClick) {
+        selectHoveredWindow();
+    } else {
+        m_hoverRect = QRect();
+    }
 
     updateSelectionState();
     updateCursor();
@@ -1365,6 +1407,12 @@ void CaptureWidget::initSelection()
         OverlayMessage::pop();
     });
     connect(m_selection, &SelectionWidget::geometrySettled, this, [this]() {
+        if (m_windowPressPending) {
+            // Release of a click on a highlighted window: the selection
+            // widget saw it first. selectHoveredWindow() settles the real
+            // geometry right after, so ignore this tiny interim one.
+            return;
+        }
         if (m_selection->isVisibleTo(this)) {
             auto& req = m_context.request;
             if (req.tasks() & CaptureRequest::ACCEPT_ON_SELECT) {
@@ -2092,12 +2140,53 @@ void CaptureWidget::drawErrorMessage(const QString& msg, QPainter* painter)
     }
 }
 
+// The highlight shows while no selection exists, and while a press that may
+// still turn out to be a click is in progress (the selection widget shows a
+// tiny rect on the first pixel of movement).
+bool CaptureWidget::hoverWindowActive() const
+{
+    return !m_hoverRect.isEmpty() &&
+           (m_windowPressPending || !m_selection->isVisible());
+}
+
+// localPos is overlay-local logical points.
+void CaptureWidget::updateHoverWindow(const QPoint& localPos)
+{
+    QRect newRect;
+    if (!m_windowCandidates.isEmpty() && !m_selection->isVisible() &&
+        !m_activeButton) {
+        const auto hit = windowAt(m_windowCandidates, mapToGlobal(localPos));
+        if (hit) {
+            newRect =
+              toOverlayRect(hit->bounds, mapToGlobal(QPoint(0, 0)), rect());
+        }
+    }
+    if (newRect != m_hoverRect) {
+        m_hoverRect = newRect;
+        update();
+    }
+}
+
+// Selects the hovered window exactly like selectAll() selects the screen, so
+// geometrySettled drives ACCEPT_ON_SELECT and the button handler as usual.
+void CaptureWidget::selectHoveredWindow()
+{
+    const QRect windowRect = m_hoverRect;
+    m_hoverRect = QRect();
+    m_selection->show();
+    m_selection->setGeometry(windowRect);
+    emit m_selection->geometrySettled();
+    update();
+}
+
 void CaptureWidget::drawInactiveRegion(QPainter* painter)
 {
     QColor overlayColor(0, 0, 0, m_opacity);
     painter->setBrush(overlayColor);
     QRect r;
-    if (m_selection->isVisible()) {
+    if (hoverWindowActive()) {
+        r = m_hoverRect;
+    } else if (m_selection->isVisible()) {
         r = m_selection->geometry().normalized();
     }
     QRegion grey(rect());

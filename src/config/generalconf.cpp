@@ -46,6 +46,7 @@ GeneralConf::GeneralConf(QWidget* parent)
     initAllowMultipleGuiInstances();
     initSaveLastRegion();
     initCaptureFirst();
+    initHoverWindowDetection();
     initCaptureToastSeconds();
     initShowHelp();
     initShowSidePanelButton();
@@ -116,6 +117,7 @@ void GeneralConf::_updateComponents(bool allowEmptySavePath)
     m_squareMagnifier->setChecked(config.squareMagnifier());
     m_saveLastRegion->setChecked(config.saveLastRegion());
     m_captureFirst->setChecked(config.captureFirst());
+    m_hoverWindowDetection->setChecked(config.hoverWindowDetection());
     m_captureToastSeconds->setValue(config.captureToastSeconds());
     m_reverseArrow->setChecked(config.reverseArrow());
     m_drawCircleCounterOutline->setChecked(config.drawCircleCounterOutline());
@@ -157,6 +159,11 @@ void GeneralConf::saveLastRegion(bool checked)
 void GeneralConf::captureFirst(bool checked)
 {
     ConfigHandler().setCaptureFirst(checked);
+}
+
+void GeneralConf::hoverWindowDetection(bool checked)
+{
+    ConfigHandler().setHoverWindowDetection(checked);
 }
 
 void GeneralConf::captureToastSeconds(int seconds)
@@ -311,6 +318,21 @@ void GeneralConf::initCaptureFirst()
             &QCheckBox::clicked,
             this,
             &GeneralConf::captureFirst);
+}
+
+void GeneralConf::initHoverWindowDetection()
+{
+    m_hoverWindowDetection =
+      new QCheckBox(tr("Highlight the window under the cursor"), this);
+    m_hoverWindowDetection->setToolTip(
+      tr("Before selecting a region, hover a window to highlight it and "
+         "click to select the whole window"));
+    m_scrollAreaLayout->addWidget(m_hoverWindowDetection);
+
+    connect(m_hoverWindowDetection,
+            &QCheckBox::clicked,
+            this,
+            &GeneralConf::hoverWindowDetection);
 }
 
 void GeneralConf::initCaptureToastSeconds()

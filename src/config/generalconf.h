@@ -36,6 +36,7 @@ private slots:
     void showHelpChanged(bool checked);
     void saveLastRegion(bool checked);
     void captureFirst(bool checked);
+    void hoverWindowDetection(bool checked);
     void captureToastSeconds(int seconds);
     void showSidePanelButtonChanged(bool checked);
     void showDesktopNotificationChanged(bool checked);
@@ -107,6 +108,7 @@ private:
     void initUploadClientSecret();
     void initSaveLastRegion();
     void initCaptureFirst();
+    void initHoverWindowDetection();
     void initCaptureToastSeconds();
     void initShowSelectionGeometry();
     void initJpegQuality();
@@ -147,6 +149,7 @@ private:
     QCheckBox* m_antialiasingPinZoom;
     QCheckBox* m_saveLastRegion;
     QCheckBox* m_captureFirst;
+    QCheckBox* m_hoverWindowDetection;
     QSpinBox* m_captureToastSeconds;
     QCheckBox* m_uploadWithoutConfirmation;
     QPushButton* m_importButton;

@@ -104,6 +104,7 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("saveAsFileExtension"         ,SaveFileExtension  (               )),
     OPTION("saveLastRegion"              ,Bool               ( false         )),
     OPTION("captureFirst"                ,Bool               ( true          )),
+    OPTION("hoverWindowDetection"        ,Bool               ( true          )),
     OPTION("captureToastSeconds"         ,LowerBoundedInt    ( 0, 6          )),
     OPTION("uploadHistoryMax"            ,LowerBoundedInt    ( 0, 25         )),
     OPTION("undoLimit"                   ,BoundedInt         ( 0, 999, 100   )),

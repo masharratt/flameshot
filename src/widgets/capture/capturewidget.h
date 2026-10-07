@@ -14,6 +14,7 @@
 #include "tools/capturecontext.h"
 #include "tools/capturetool.h"
 #include "utils/confighandler.h"
+#include "platform/windowlist.h"
 #include "widgets/capture/buttonhandler.h"
 #include "widgets/capture/capturetoolbutton.h"
 #include "widgets/capture/capturetoolobjects.h"
@@ -148,6 +149,9 @@ private:
     QRect paddedUpdateRect(const QRect& r) const;
     void drawErrorMessage(const QString& msg, QPainter* painter);
     void drawInactiveRegion(QPainter* painter);
+    void updateHoverWindow(const QPoint& localPos);
+    bool hoverWindowActive() const;
+    void selectHoveredWindow();
     void drawToolsData(bool drawSelection = true);
     void drawObjectSelection();
 
@@ -232,4 +236,11 @@ private:
     int m_gridSize{ 10 };
 
     bool m_clipboardWorkaroundDone{ false };
+
+    // Hover-to-window detection. Window bounds are global logical points;
+    // m_hoverRect is overlay-local logical points (widget coordinates, the
+    // same space as m_selection->geometry()), never device pixels.
+    QList<WindowInfo> m_windowCandidates;
+    QRect m_hoverRect;
+    bool m_windowPressPending{ false };
 };

@@ -112,6 +112,7 @@ add_subdirectory(core)
 add_subdirectory(utils)
 add_subdirectory(widgets)
 add_subdirectory(tools)
+add_subdirectory(platform)
 
 
 set(FLAMESHOT_TS_FILES

@@ -1,6 +1,6 @@
 # State Machines
 
-**Last Updated:** 2026-10-06 (capture-first accept-on-select path)
+**Last Updated:** 2026-10-06 (hover-to-window click selection)
 
 ## 1. Capture Overlay
 
@@ -17,8 +17,8 @@
 ### Transitions
 | From | To | Trigger | Guard |
 |------|----|---------|-------|
-| selecting | editing | Mouse release on a region | ACCEPT_ON_SELECT not set |
-| selecting | accepted | Mouse release on a region | ACCEPT_ON_SELECT set (CLI flag, or captureFirst hotkey/tray request) |
+| selecting | editing | Mouse release on a region, or click on a highlighted window | ACCEPT_ON_SELECT not set |
+| selecting | accepted | Mouse release on a region, or click on a highlighted window | ACCEPT_ON_SELECT set (CLI flag, or captureFirst hotkey/tray request) |
 | editing | accepted | Save / copy / pin action | Selection not empty |
 | selecting | cancelled | Escape or right click | none |
 | editing | cancelled | Escape | none |
