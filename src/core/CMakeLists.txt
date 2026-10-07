@@ -1,10 +1,12 @@
 target_sources(flameshot PRIVATE
+    capturefirstrequest.h
     flameshot.h
     flameshotdaemon.h
     qguiappcurrentscreen.h
 )
 
 target_sources(flameshot PRIVATE
+    capturefirstrequest.cpp
     capturerequest.cpp
     flameshot.cpp
     flameshotdaemon.cpp

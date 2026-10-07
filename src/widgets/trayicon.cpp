@@ -1,4 +1,5 @@
 #include "trayicon.h"
+#include "core/capturefirstrequest.h"
 #include "core/capturerequest.h"
 #include "core/flameshot.h"
 #include "core/flameshotdaemon.h"
@@ -10,6 +11,7 @@
 #include <QGuiApplication>
 #include <QMenu>
 #include <QScreen>
+#include <QStandardPaths>
 #include <QTimer>
 #include <QUrl>
 #include <QVersionNumber>
@@ -281,7 +283,13 @@ void TrayIcon::initScreenMenu()
 
 void TrayIcon::startGuiCapture()
 {
-    auto* widget = Flameshot::instance()->gui();
+    ConfigHandler config;
+    auto* widget =
+      config.captureFirst()
+        ? Flameshot::instance()->gui(buildCaptureFirstRequest(
+            config.savePath(),
+            QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)))
+        : Flameshot::instance()->gui();
 #if !defined(DISABLE_UPDATE_CHECKER)
     FlameshotDaemon::instance()->showUpdateNotificationIfAvailable(widget);
 #endif

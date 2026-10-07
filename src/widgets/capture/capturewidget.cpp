@@ -17,6 +17,7 @@
 #include "tools/copy/copytool.h"
 #include "utils/abstractlogger.h"
 #include "utils/screengrabber.h"
+#include "core/capturefirstrequest.h"
 #include "utils/screenshotsaver.h"
 #include "widgets/capture/colorpicker.h"
 #include "widgets/capture/hovereventfilter.h"
@@ -121,8 +122,13 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
         } else {
             preSelectedMonitor = -1;
         }
-        m_context.screenshot =
-          grabber.grabEntireDesktop(ok, preSelectedMonitor);
+        if (!req.presetScreenshot().isNull()) {
+            // Edit from the capture toast: use the given pixmap, no grab
+            m_context.screenshot = req.presetScreenshot();
+        } else {
+            m_context.screenshot =
+              grabber.grabEntireDesktop(ok, preSelectedMonitor);
+        }
         if (!ok) {
             // Error already logged in ScreenGrabber
             this->close();
@@ -166,7 +172,8 @@ CaptureWidget::CaptureWidget(const CaptureRequest& req,
             windowHandle()->setScreen(selectedScreen);
         }
 #elif defined(Q_OS_MACOS)
-        if (!ConfigHandler().useNativeFullscreen()) {
+        if (!shouldUseNativeFullscreen(req,
+                                       ConfigHandler().useNativeFullscreen())) {
             setWindowFlags(Qt::WindowStaysOnTopHint | Qt::FramelessWindowHint |
                            Qt::Tool);
         }
@@ -324,6 +331,9 @@ CaptureWidget::~CaptureWidget()
         setLastRegion(lastRegion);
         QRect geometry(m_context.selection);
         geometry.setTopLeft(geometry.topLeft() + m_context.widgetOffset);
+        m_context.request.setCapturedGlobalRect(
+          globalSelectionRect(m_selection->geometry().intersected(rect()),
+                              pos()));
         Flameshot::instance()->exportCapture(
           pixmap(), geometry, m_context.request);
     } else {

@@ -45,6 +45,7 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "config/cacheutils.h"
 #include "config/configresolver.h"
 #include "config/configwindow.h"
+#include "core/capturefirstrequest.h"
 #include "core/qguiappcurrentscreen.h"
 #include "utils/abstractlogger.h"
 #include "utils/confighandler.h"
@@ -52,6 +53,7 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "utils/screenshotsaver.h"
 #include "widgets/capture/capturewidget.h"
 #include "widgets/capturelauncher.h"
+#include "widgets/capturetoast.h"
 #include "widgets/infowindow.h"
 
 #ifdef ENABLE_IMGUR
@@ -67,6 +69,9 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include <QDesktopServices>
 #include <QFile>
 #include <QMessageBox>
+#include <QPainter>
+#include <QScreen>
+#include <QStandardPaths>
 #include <QThread>
 #include <QTimer>
 #include <QUrl>
@@ -89,6 +94,24 @@ Flameshot::Flameshot()
     QString StyleSheet = CaptureButton::globalStyleSheet();
     qApp->setStyleSheet(StyleSheet);
 
+    connect(this,
+            &Flameshot::captureSaved,
+            this,
+            [this](const QString& path,
+                   const QPixmap& capture,
+                   const QRect& selection,
+                   const QRect& globalRect) {
+                ConfigHandler config;
+                if (m_toastRequested && config.captureFirst() &&
+                    config.captureToastSeconds() > 0) {
+                    CaptureToast::showFor(path,
+                                          capture,
+                                          selection,
+                                          globalRect,
+                                          config.captureToastSeconds());
+                }
+            });
+
 #if defined(Q_OS_MACOS)
     // Request Screen Recording permission via the proper CoreGraphics API
     if (!CGPreflightScreenCaptureAccess()) {
@@ -102,7 +125,16 @@ Flameshot::Flameshot()
     QObject::connect(m_HotkeyScreenshotCapture,
                      &QHotkey::activated,
                      qApp,
-                     [this]() { gui(); });
+                     [this]() {
+                         if (ConfigHandler().captureFirst()) {
+                             gui(buildCaptureFirstRequest(
+                               ConfigHandler().savePath(),
+                               QStandardPaths::writableLocation(
+                                 QStandardPaths::PicturesLocation)));
+                         } else {
+                             gui();
+                         }
+                     });
 #endif
 #if (defined(Q_OS_MACOS) && ENABLE_IMGUR)
     m_HotkeyScreenshotHistory = new QHotkey(
@@ -127,9 +159,7 @@ CaptureWidget* Flameshot::gui(const CaptureRequest& req)
     }
 
     CaptureRequest request = req;
-    if (request.captureMode() == CaptureRequest::GRAPHICAL_MODE &&
-        request.initialSelection().isNull() &&
-        ConfigHandler().saveLastRegion()) {
+    if (shouldApplyLastRegion(request, ConfigHandler().saveLastRegion())) {
         request.setInitialSelection(getLastRegion());
     }
 
@@ -170,7 +200,8 @@ CaptureWidget* Flameshot::gui(const CaptureRequest& req)
 #ifdef Q_OS_WIN
         m_captureWindow->show();
 #elif defined(Q_OS_MACOS)
-        if (ConfigHandler().useNativeFullscreen()) {
+        if (shouldUseNativeFullscreen(request,
+                                      ConfigHandler().useNativeFullscreen())) {
             m_captureWindow->showFullScreen();
         } else {
             m_captureWindow->show();
@@ -482,7 +513,17 @@ void Flameshot::exportCapture(const QPixmap& capture,
         if (req.path().isEmpty()) {
             saveToFilesystemGUI(capture);
         } else {
-            saveToFilesystem(capture, path);
+            QString savedPath;
+            if (saveToFilesystem(capture,
+                                 path,
+                                 QString(),
+                                 &savedPath,
+                                 req.overwriteExisting())) {
+                m_toastRequested = req.captureFirst();
+                emit captureSaved(
+                  savedPath, capture, selection, req.capturedGlobalRect());
+                m_toastRequested = false;
+            }
         }
     }
 
@@ -528,6 +569,34 @@ void Flameshot::exportCapture(const QPixmap& capture,
     if (!(tasks & CR::UPLOAD)) {
         emit captureTaken(capture);
     }
+}
+
+void Flameshot::editSavedCapture(const QString& path,
+                                 const QPixmap& capture,
+                                 const QRect& globalRect)
+{
+    QScreen* screen = QGuiApplication::screenAt(globalRect.center());
+    if (!screen) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    const qreal dpr = screen->devicePixelRatio();
+    const EditGeometry geo = editGeometry(globalRect, screen->geometry(), dpr);
+
+    // Screen sized backdrop with the captured image drawn where it was taken
+    QPixmap backdrop(screen->size() * dpr);
+    backdrop.setDevicePixelRatio(dpr);
+    backdrop.fill(Qt::black);
+    {
+        QPainter painter(&backdrop);
+        painter.drawPixmap(geo.localLogical, capture);
+    }
+
+    CaptureRequest req(CaptureRequest::GRAPHICAL_MODE);
+    req.setPresetScreenshot(backdrop);
+    req.setInitialSelection(geo.initialSelectionDevice);
+    req.addSaveTask(path);
+    req.setOverwriteExisting(true);
+    gui(req);
 }
 
 void Flameshot::setExternalWidget(bool b)

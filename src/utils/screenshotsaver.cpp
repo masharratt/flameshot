@@ -38,10 +38,15 @@
 
 bool saveToFilesystem(const QPixmap& capture,
                       const QString& path,
-                      const QString& messagePrefix)
+                      const QString& messagePrefix,
+                      QString* savedPath,
+                      bool overwrite)
 {
-    QString completePath = FileNameHandler().properScreenshotPath(
-      path, ConfigHandler().saveAsFileExtension());
+    QString completePath =
+      (overwrite && QFileInfo(path).isFile())
+        ? path
+        : FileNameHandler().properScreenshotPath(
+            path, ConfigHandler().saveAsFileExtension());
     QFile file{ completePath };
     bool okay = false;
 
@@ -61,6 +66,9 @@ bool saveToFilesystem(const QPixmap& capture,
         }
 
         if (okay) {
+            if (savedPath) {
+                *savedPath = completePath;
+            }
             saveMessage += QObject::tr("Capture saved as ") + completePath;
             AbstractLogger::info().attachNotificationPath(notificationPath)
               << saveMessage;

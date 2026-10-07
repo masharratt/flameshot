@@ -73,9 +73,19 @@ public:
 signals:
     void captureTaken(QPixmap p);
     void captureFailed();
+    // selection uses exportCapture units (for pins); globalRect is the
+    // captured area in global logical points.
+    void captureSaved(const QString& path,
+                      const QPixmap& capture,
+                      const QRect& selection,
+                      const QRect& globalRect);
 
 public slots:
     void requestCapture(const CaptureRequest& request);
+    // Reopen a saved capture in the editor; saving overwrites the same file.
+    void editSavedCapture(const QString& path,
+                          const QPixmap& capture,
+                          const QRect& globalRect);
     void exportCapture(const QPixmap& p,
                        QRect& selection,
                        const CaptureRequest& req);
@@ -87,6 +97,7 @@ private:
     // class members
     static Origin m_origin;
     bool m_haveExternalWidget;
+    bool m_toastRequested = false;
 
     QPointer<CaptureWidget> m_captureWindow;
     QPointer<InfoWindow> m_infoWindow;

@@ -1,6 +1,6 @@
 # State Machines
 
-**Last Updated:** 2026-10-06 (initial: capture overlay lifecycle)
+**Last Updated:** 2026-10-06 (capture-first accept-on-select path)
 
 ## 1. Capture Overlay
 
@@ -11,14 +11,14 @@
 |-------|---------|
 | selecting | Full-screen overlay shown, user choosing a region. |
 | editing | Region chosen, annotation toolbar shown. |
-| accepted | User confirmed; capture exported when the overlay is destroyed. |
+| accepted | User confirmed; capture exported when the overlay is destroyed. In captureFirst mode a toast follows the save. |
 | cancelled | Overlay closed without a capture. |
 
 ### Transitions
 | From | To | Trigger | Guard |
 |------|----|---------|-------|
 | selecting | editing | Mouse release on a region | ACCEPT_ON_SELECT not set |
-| selecting | accepted | Mouse release on a region | ACCEPT_ON_SELECT set |
+| selecting | accepted | Mouse release on a region | ACCEPT_ON_SELECT set (CLI flag, or captureFirst hotkey/tray request) |
 | editing | accepted | Save / copy / pin action | Selection not empty |
 | selecting | cancelled | Escape or right click | none |
 | editing | cancelled | Escape | none |

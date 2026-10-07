@@ -45,6 +45,8 @@ GeneralConf::GeneralConf(QWidget* parent)
     initShowQuitPrompt();
     initAllowMultipleGuiInstances();
     initSaveLastRegion();
+    initCaptureFirst();
+    initCaptureToastSeconds();
     initShowHelp();
     initShowSidePanelButton();
     initUseJpgForClipboard();
@@ -113,6 +115,8 @@ void GeneralConf::_updateComponents(bool allowEmptySavePath)
     m_showMagnifier->setChecked(config.showMagnifier());
     m_squareMagnifier->setChecked(config.squareMagnifier());
     m_saveLastRegion->setChecked(config.saveLastRegion());
+    m_captureFirst->setChecked(config.captureFirst());
+    m_captureToastSeconds->setValue(config.captureToastSeconds());
     m_reverseArrow->setChecked(config.reverseArrow());
     m_drawCircleCounterOutline->setChecked(config.drawCircleCounterOutline());
     m_autoCloseIdleDaemon->setChecked(config.autoCloseIdleDaemon());
@@ -148,6 +152,16 @@ void GeneralConf::updateComponents()
 void GeneralConf::saveLastRegion(bool checked)
 {
     ConfigHandler().setSaveLastRegion(checked);
+}
+
+void GeneralConf::captureFirst(bool checked)
+{
+    ConfigHandler().setCaptureFirst(checked);
+}
+
+void GeneralConf::captureToastSeconds(int seconds)
+{
+    ConfigHandler().setCaptureToastSeconds(seconds);
 }
 
 void GeneralConf::showHelpChanged(bool checked)
@@ -282,6 +296,47 @@ void GeneralConf::initShowHelp()
 
     connect(
       m_helpMessage, &QCheckBox::clicked, this, &GeneralConf::showHelpChanged);
+}
+
+void GeneralConf::initCaptureFirst()
+{
+    m_captureFirst =
+      new QCheckBox(tr("Capture first (copy and save on selection)"), this);
+    m_captureFirst->setToolTip(
+      tr("The hotkey and tray icon copy and save the selected region "
+         "immediately, then show a small preview with actions"));
+    m_scrollAreaLayout->addWidget(m_captureFirst);
+
+    connect(m_captureFirst,
+            &QCheckBox::clicked,
+            this,
+            &GeneralConf::captureFirst);
+}
+
+void GeneralConf::initCaptureToastSeconds()
+{
+    auto* box = new QGroupBox(tr("Capture preview duration (seconds)"));
+    box->setFlat(true);
+    box->setToolTip(tr("How long the preview stays after a capture. "
+                       "0 disables the preview."));
+    m_layout->addWidget(box);
+
+    auto* vboxLayout = new QVBoxLayout();
+    box->setLayout(vboxLayout);
+
+    m_captureToastSeconds = new QSpinBox(this);
+    m_captureToastSeconds->setMinimum(0);
+    m_captureToastSeconds->setMaximum(60);
+    QString foreground = this->palette().windowText().color().name();
+    m_captureToastSeconds->setStyleSheet(
+      QStringLiteral("color: %1").arg(foreground));
+
+    connect(m_captureToastSeconds,
+            static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+            this,
+            &GeneralConf::captureToastSeconds);
+
+    vboxLayout->addWidget(m_captureToastSeconds);
 }
 
 void GeneralConf::initSaveLastRegion()

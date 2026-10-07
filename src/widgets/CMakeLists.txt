@@ -9,6 +9,8 @@ target_sources(
         capturelauncher.ui
 
         capturelauncher.h
+        capturetoast.h
+        toaststack.h
         draggablewidgetmaker.h
         imagelabel.h
         trayicon.h
@@ -37,6 +39,8 @@ target_sources(
         flameshot
         PRIVATE
         capturelauncher.cpp
+        capturetoast.cpp
+        toaststack.cpp
         draggablewidgetmaker.cpp
         imagelabel.cpp
         trayicon.cpp

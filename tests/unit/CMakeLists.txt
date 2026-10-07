@@ -20,3 +20,5 @@ endfunction()
 
 flameshot_add_unit_test(tst_strfparse SOURCES utils/strfparse.cpp)
 flameshot_add_unit_test(tst_rulermath SOURCES tools/ruler/rulermath.cpp)
+flameshot_add_unit_test(tst_capturefirstrequest SOURCES core/capturefirstrequest.cpp core/capturerequest.cpp)
+flameshot_add_unit_test(tst_toaststack SOURCES widgets/toaststack.cpp)

@@ -48,6 +48,36 @@ QRect CaptureRequest::initialSelection() const
     return m_initialSelection;
 }
 
+QPixmap CaptureRequest::presetScreenshot() const
+{
+    return m_presetScreenshot;
+}
+
+bool CaptureRequest::overwriteExisting() const
+{
+    return m_overwriteExisting;
+}
+
+bool CaptureRequest::captureFirst() const
+{
+    return m_captureFirst;
+}
+
+void CaptureRequest::setCaptureFirst(bool captureFirst)
+{
+    m_captureFirst = captureFirst;
+}
+
+void CaptureRequest::setPresetScreenshot(const QPixmap& screenshot)
+{
+    m_presetScreenshot = screenshot;
+}
+
+void CaptureRequest::setOverwriteExisting(bool overwrite)
+{
+    m_overwriteExisting = overwrite;
+}
+
 void CaptureRequest::addTask(CaptureRequest::ExportTask task)
 {
     if (task == SAVE) {
@@ -92,4 +122,14 @@ int CaptureRequest::selectedMonitor() const
 bool CaptureRequest::hasSelectedMonitor() const
 {
     return m_hasSelectedMonitor;
+}
+
+QRect CaptureRequest::capturedGlobalRect() const
+{
+    return m_capturedGlobalRect;
+}
+
+void CaptureRequest::setCapturedGlobalRect(const QRect& rect)
+{
+    m_capturedGlobalRect = rect;
 }

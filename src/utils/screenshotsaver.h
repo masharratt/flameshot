@@ -10,7 +10,9 @@ class QPixmap;
 
 bool saveToFilesystem(const QPixmap& capture,
                       const QString& path,
-                      const QString& messagePrefix = "");
+                      const QString& messagePrefix = "",
+                      QString* savedPath = nullptr,
+                      bool overwrite = false);
 QString ShowSaveFileDialog(const QString& title, const QString& directory);
 void saveToClipboardMime(const QPixmap& capture, const QString& imageType);
 void saveToClipboard(const QPixmap& capture);

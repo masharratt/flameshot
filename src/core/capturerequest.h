@@ -43,12 +43,23 @@ public:
     CaptureMode captureMode() const;
     ExportTask tasks() const;
     QRect initialSelection() const;
+    QPixmap presetScreenshot() const;
+    bool overwriteExisting() const;
+    bool captureFirst() const;
+    QRect capturedGlobalRect() const;
 
     void addTask(ExportTask task);
     void removeTask(ExportTask task);
     void addSaveTask(const QString& path = QString());
     void addPinTask(const QRect& pinWindowGeometry);
     void setInitialSelection(const QRect& selection);
+    // Use this pixmap instead of grabbing the screen (used by the toast Edit).
+    void setPresetScreenshot(const QPixmap& screenshot);
+    // Save to the exact path given, replacing the file instead of numbering.
+    void setOverwriteExisting(bool overwrite);
+    // Marks a request made by the capture-first hotkey or tray path.
+    void setCaptureFirst(bool captureFirst);
+    void setCapturedGlobalRect(const QRect& rect);
     void setSelectedMonitor(int monitorIndex);
     int selectedMonitor() const;
     bool hasSelectedMonitor() const;
@@ -60,6 +71,10 @@ private:
     ExportTask m_tasks;
     QVariant m_data;
     QRect m_pinWindowGeometry, m_initialSelection;
+    QPixmap m_presetScreenshot;
+    bool m_overwriteExisting = false;
+    bool m_captureFirst = false;
+    QRect m_capturedGlobalRect;
     int m_selectedMonitor;
     bool m_hasSelectedMonitor;
 
