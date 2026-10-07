@@ -8,6 +8,7 @@
 #include <QVector>
 #include <QWidget>
 
+class CaptureButton;
 class CaptureToolButton;
 class CaptureWidget;
 class QScrollArea;
@@ -36,12 +37,18 @@ protected:
 private:
     // Strip height for the current buttons laid out in `width` points
     int toolbarHeightFor(int width) const;
+    int stripCount() const;
     void layoutToolbar();
     void dockSidePanel();
+    void addExpandButton();
+    // Grow the window (never shrink it) so a larger canvas shows, up to 90%
+    // of the screen; beyond that the scroll area takes over.
+    void growToCanvas(const QSize& canvasLogical);
 
     QPointer<CaptureWidget> m_capture;
     QScrollArea* m_scroll{ nullptr };
     QWidget* m_toolbar{ nullptr };
     QVector<CaptureToolButton*> m_buttons;
+    CaptureButton* m_expandButton{ nullptr };
     QPixmap m_image;
 };

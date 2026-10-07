@@ -20,6 +20,7 @@
 #include "widgets/capture/capturetoolobjects.h"
 #include "widgets/capture/magnifierwidget.h"
 #include "widgets/capture/selectionwidget.h"
+#include "widgets/editcanvas.h"
 
 #include <QMessageBox>
 #include <QPointer>
@@ -67,6 +68,8 @@ public slots:
 signals:
     void colorChanged(const QColor& c);
     void toolSizeChanged(int size);
+    // Windowed editor: the canvas grew or shrank (logical size)
+    void editCanvasResized(const QSize& canvasLogical);
 
 private slots:
     void undo();
@@ -104,6 +107,13 @@ public:
     QVector<CaptureToolButton*> toolbarButtons() const;
     QWidget* sidePanel() const;
     QWidget* sidePanelToggle() const;
+
+    // Windowed editor: add white space on every edge, undoable. Does nothing
+    // outside edit mode.
+    void expandEditCanvas(int stepLogical = kExpandStepLogical);
+    // Applies (or with a negative step reverts) an expansion. Called by the
+    // undo command, not meant for direct use.
+    void applyCanvasExpansion(int stepLogical);
 
 protected:
     void paintEvent(QPaintEvent* paintEvent) override;

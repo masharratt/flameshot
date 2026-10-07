@@ -2289,6 +2289,64 @@ void CaptureWidget::initEditCanvas(const QPixmap& image)
     setFixedSize(plan.canvasLogical);
 }
 
+void CaptureWidget::expandEditCanvas(int stepLogical)
+{
+    if (!m_editMode || stepLogical <= 0) {
+        return;
+    }
+    // Bake any pending drawing first so the undo step is only the expansion
+    commitCurrentTool();
+    m_undoStack.push(new ExpandCanvasCommand(this, stepLogical));
+}
+
+// Grows the canvas by stepLogical on every edge (shrinks for a negative
+// step). The original pixels are copied 1:1, never resampled; the new area is
+// opaque white. Annotations move with the image.
+void CaptureWidget::applyCanvasExpansion(int stepLogical)
+{
+    if (!m_editMode) {
+        return;
+    }
+    const qreal dpr = m_context.origScreenshot.devicePixelRatio();
+    const CanvasExpansion e = expandCanvas(m_context.origScreenshot.size(),
+                                           m_editImageRectLogical,
+                                           m_editImageRectDevice,
+                                           stepLogical,
+                                           dpr);
+
+    QPixmap source = m_context.origScreenshot;
+    source.setDevicePixelRatio(1.0);
+    QPixmap canvas(e.newCanvasPx);
+    canvas.fill(QColor(0x2b, 0x2b, 0x2b));
+    {
+        QPainter painter(&canvas);
+        painter.setClipRect(e.newSelectionDevice);
+        painter.fillRect(e.newSelectionDevice, Qt::white);
+        painter.drawPixmap(m_editImageRectDevice.topLeft() + e.imageOffsetPx,
+                           source,
+                           m_editImageRectDevice);
+    }
+    canvas.setDevicePixelRatio(dpr);
+
+    for (const auto& tool : m_captureToolObjects.captureToolObjects()) {
+        if (tool && tool->pos()) {
+            const QPoint current = *tool->pos();
+            tool->move(current + e.objectShiftLogical);
+        }
+    }
+
+    m_context.screenshot = canvas;
+    m_context.origScreenshot = canvas;
+    m_editImageRectDevice = e.newSelectionDevice;
+    m_editImageRectLogical = e.newSelectionLogical;
+    m_context.selection = m_editImageRectDevice;
+    setFixedSize(size() + QSize(2 * stepLogical, 2 * stepLogical));
+    m_selection->setGeometry(m_editImageRectLogical);
+    drawToolsData();
+    update();
+    emit editCanvasResized(size());
+}
+
 // Small dark label near the cursor while dragging a selection. The size is in
 // device pixels (what the saved image will measure); the position is in widget
 // points.

@@ -3,6 +3,10 @@
 #include "editorwindow.h"
 #include "core/capturerequest.h"
 #include "utils/globalvalues.h"
+#include "utils/colorutils.h"
+#include "utils/confighandler.h"
+#include "utils/pathinfo.h"
+#include "widgets/capture/capturebutton.h"
 #include "widgets/capture/capturetoolbutton.h"
 #include "widgets/capture/capturewidget.h"
 #include "widgets/editcanvas.h"
@@ -12,10 +16,12 @@
 #include <QEvent>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QIcon>
 #include <QScreen>
 #include <QScrollArea>
 #include <QShortcut>
 #include <QVBoxLayout>
+#include <QWindow>
 #include <algorithm>
 
 namespace {
@@ -68,6 +74,7 @@ EditorWindow::EditorWindow(const QString& path, const QPixmap& image)
                         GlobalValues::buttonBaseSize());
         b->show();
     }
+    addExpandButton();
     m_toolbar->setFixedHeight(toolbarHeightFor(width()));
     layoutToolbar();
     dockSidePanel();
@@ -76,6 +83,56 @@ EditorWindow::EditorWindow(const QString& path, const QPixmap& image)
 
     // Esc, Save and the other finishing tools close the CaptureWidget
     connect(m_capture, &QObject::destroyed, this, [this]() { close(); });
+    connect(m_capture,
+            &CaptureWidget::editCanvasResized,
+            this,
+            &EditorWindow::growToCanvas);
+}
+
+// A button in the strip after the tool buttons. It is not a capture tool: it
+// calls straight into the edit canvas, so the overlay never sees it.
+void EditorWindow::addExpandButton()
+{
+    const QColor ui = ConfigHandler().uiColor();
+    m_expandButton = new CaptureButton(m_toolbar);
+    m_expandButton->setColor(ui);
+    m_expandButton->setStyleSheet(m_expandButton->styleSheet() +
+                                  QStringLiteral(" CaptureButton { padding: "
+                                                 "0; }"));
+    const int size = GlobalValues::buttonBaseSize();
+    m_expandButton->setFixedSize(size, size);
+    m_expandButton->setMask(
+      QRegion(QRect(-1, -1, size + 2, size + 2), QRegion::Ellipse));
+    const QString iconDir = ColorUtils::colorIsDark(ui)
+                              ? PathInfo::whiteIconPath()
+                              : PathInfo::blackIconPath();
+    m_expandButton->setIcon(QIcon(iconDir + QStringLiteral("expand-canvas.svg")));
+    m_expandButton->setIconSize(QSize(size, size) * 0.6);
+    m_expandButton->setToolTip(tr("Expand canvas"));
+    connect(m_expandButton, &QPushButton::clicked, this, [this]() {
+        if (m_capture) {
+            m_capture->expandEditCanvas();
+        }
+    });
+    m_expandButton->show();
+}
+
+void EditorWindow::growToCanvas(const QSize& canvasLogical)
+{
+    QScreen* screen = windowHandle() ? windowHandle()->screen() : nullptr;
+    if (!screen) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    const QRect available = screen->availableGeometry();
+    const QSize target(
+      std::min(canvasLogical.width(), available.width() * 9 / 10),
+      std::min(canvasLogical.height() + m_toolbar->height(),
+               available.height() * 9 / 10));
+    const QSize grown(std::max(width(), target.width()),
+                      std::max(height(), target.height()));
+    if (grown != size()) {
+        resize(grown);
+    }
 }
 
 EditorWindow::~EditorWindow()
@@ -89,11 +146,16 @@ int EditorWindow::toolbarHeightFor(int width) const
 {
     const int size = GlobalValues::buttonBaseSize();
     const int rows = toolbarRows(
-      m_buttons.size(), size, kToolbarSpacing, width - 2 * kToolbarPad);
+      stripCount(), size, kToolbarSpacing, width - 2 * kToolbarPad);
     if (rows == 0) {
         return 0;
     }
     return rows * size + (rows - 1) * kToolbarSpacing + 2 * kToolbarPad;
+}
+
+int EditorWindow::stripCount() const
+{
+    return m_buttons.size() + (m_expandButton ? 1 : 0);
 }
 
 // One row of buttons that wraps to further rows when the window is narrow
@@ -110,6 +172,10 @@ void EditorWindow::layoutToolbar()
         b->move(kToolbarPad + col * (size + kToolbarSpacing),
                 kToolbarPad + row * (size + kToolbarSpacing));
         ++i;
+    }
+    if (m_expandButton) {
+        m_expandButton->move(kToolbarPad + (i % perRow) * (size + kToolbarSpacing),
+                             kToolbarPad + (i / perRow) * (size + kToolbarSpacing));
     }
 }
 

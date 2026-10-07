@@ -23,3 +23,19 @@ private:
     CaptureToolObjects m_captureToolObjectsBackup;
     CaptureWidget* m_captureWidget;
 };
+
+// Windowed editor: one click of Expand canvas. Redo adds the step on every
+// edge, undo removes it again. Annotations are shifted by the same step, so
+// the stack of earlier commands stays valid.
+class ExpandCanvasCommand : public QUndoCommand
+{
+public:
+    ExpandCanvasCommand(CaptureWidget* captureWidget, int stepLogical);
+
+    void undo() override;
+    void redo() override;
+
+private:
+    CaptureWidget* m_captureWidget;
+    int m_stepLogical;
+};

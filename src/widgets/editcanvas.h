@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <QPoint>
 #include <QRect>
 #include <QSize>
 
@@ -30,6 +31,31 @@ EditCanvas planEditCanvas(QSize imagePx,
 // separated by `spacing` in a strip `width` wide. At least one button is
 // placed per row, so a tiny width never yields zero columns. 0 for no buttons.
 int toolbarRows(int count, int buttonSize, int spacing, int width);
+
+// Result of growing (or, with a negative step, shrinking) the canvas by
+// stepLogical points on every edge. The selection is the exported image area:
+// its top-left stays put and it grows by twice the step, so the outer margin
+// is unchanged and content shifts inward by the step.
+struct CanvasExpansion
+{
+    QSize newCanvasPx;          // canvas size in device pixels
+    QPoint imageOffsetPx;       // where existing content moves, device pixels
+    QPoint objectShiftLogical;  // shift for annotations, logical points
+    QRect newSelectionLogical;
+    QRect newSelectionDevice;
+};
+
+// canvasPx and selectionDevice are device pixels, selectionLogical is points.
+// dpr below 1 is treated as 1. A negative step is the exact inverse of the
+// same positive step.
+CanvasExpansion expandCanvas(QSize canvasPx,
+                             QRect selectionLogical,
+                             QRect selectionDevice,
+                             int stepLogical,
+                             qreal dpr);
+
+// Whitespace added per edge by one click of the Expand canvas button
+constexpr int kExpandStepLogical = 40;
 
 // Margin around the image in the windowed editor, in logical points
 constexpr int kEditMargin = 8;

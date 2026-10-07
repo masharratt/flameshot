@@ -46,6 +46,7 @@
         <file>img/material/black/square.svg</file>
         <file>img/material/black/text.svg</file>
         <file>img/material/black/undo-variant.svg</file>
+        <file>img/material/black/expand-canvas.svg</file>
         <file>img/material/black/circlecount-outline.svg</file>
         <file>img/material/black/filepath.svg</file>
         <file>img/material/black/invert.svg</file>
@@ -94,6 +95,7 @@
         <file>img/material/white/square.svg</file>
         <file>img/material/white/text.svg</file>
         <file>img/material/white/undo-variant.svg</file>
+        <file>img/material/white/expand-canvas.svg</file>
         <file>img/material/black/move_down.svg</file>
         <file>img/material/black/move_up.svg</file>
         <file>img/material/white/move_down.svg</file>

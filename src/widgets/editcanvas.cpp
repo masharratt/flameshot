@@ -36,3 +36,26 @@ int toolbarRows(int count, int buttonSize, int spacing, int width)
     const int perRow = std::max(1, (width + spacing) / cell);
     return (count + perRow - 1) / perRow;
 }
+
+CanvasExpansion expandCanvas(QSize canvasPx,
+                             QRect selectionLogical,
+                             QRect selectionDevice,
+                             int stepLogical,
+                             qreal dpr)
+{
+    if (dpr < 1.0) {
+        dpr = 1.0;
+    }
+    const int stepDevice = qRound(stepLogical * dpr);
+    CanvasExpansion e;
+    e.newCanvasPx = canvasPx + QSize(2 * stepDevice, 2 * stepDevice);
+    e.imageOffsetPx = QPoint(stepDevice, stepDevice);
+    e.objectShiftLogical = QPoint(stepLogical, stepLogical);
+    e.newSelectionLogical =
+      QRect(selectionLogical.topLeft(),
+            selectionLogical.size() + QSize(2 * stepLogical, 2 * stepLogical));
+    e.newSelectionDevice =
+      QRect(selectionDevice.topLeft(),
+            selectionDevice.size() + QSize(2 * stepDevice, 2 * stepDevice));
+    return e;
+}

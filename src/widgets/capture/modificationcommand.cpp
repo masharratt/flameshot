@@ -23,3 +23,21 @@ void ModificationCommand::redo()
 {
     m_captureWidget->setCaptureToolObjects(m_captureToolObjects);
 }
+
+ExpandCanvasCommand::ExpandCanvasCommand(CaptureWidget* captureWidget,
+                                         int stepLogical)
+  : m_captureWidget(captureWidget)
+  , m_stepLogical(stepLogical)
+{
+    setText(QObject::tr("Expand canvas"));
+}
+
+void ExpandCanvasCommand::undo()
+{
+    m_captureWidget->applyCanvasExpansion(-m_stepLogical);
+}
+
+void ExpandCanvasCommand::redo()
+{
+    m_captureWidget->applyCanvasExpansion(m_stepLogical);
+}

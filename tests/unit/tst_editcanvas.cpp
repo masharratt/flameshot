@@ -124,6 +124,107 @@ private slots:
         QCOMPARE(toolbarRows(2, 32, 4, 68), 1);
         QCOMPARE(toolbarRows(2, 32, 4, 67), 2);
     }
+
+    // Canvas 416x316 logical, image selection at the 8 point margin.
+    void expandGrowsCanvasAndSelectionDpr1()
+    {
+        const CanvasExpansion e = expandCanvas(
+          QSize(416, 316), QRect(8, 8, 400, 300), QRect(8, 8, 400, 300), 40, 1.0);
+        QCOMPARE(e.newCanvasPx, QSize(496, 396));
+        QCOMPARE(e.imageOffsetPx, QPoint(40, 40));
+        QCOMPARE(e.objectShiftLogical, QPoint(40, 40));
+        QCOMPARE(e.newSelectionLogical, QRect(8, 8, 480, 380));
+        QCOMPARE(e.newSelectionDevice, QRect(8, 8, 480, 380));
+    }
+
+    void expandScalesByDpr2()
+    {
+        const CanvasExpansion e = expandCanvas(
+          QSize(832, 632), QRect(8, 8, 400, 300), QRect(16, 16, 800, 600), 40, 2.0);
+        QCOMPARE(e.newCanvasPx, QSize(992, 792));
+        QCOMPARE(e.imageOffsetPx, QPoint(80, 80));
+        QCOMPARE(e.objectShiftLogical, QPoint(40, 40));
+        QCOMPARE(e.newSelectionLogical, QRect(8, 8, 480, 380));
+        QCOMPARE(e.newSelectionDevice, QRect(16, 16, 960, 760));
+    }
+
+    void expandRepeatedAccumulates()
+    {
+        const CanvasExpansion a = expandCanvas(
+          QSize(416, 316), QRect(8, 8, 400, 300), QRect(8, 8, 400, 300), 40, 1.0);
+        const CanvasExpansion b = expandCanvas(a.newCanvasPx,
+                                               a.newSelectionLogical,
+                                               a.newSelectionDevice,
+                                               40,
+                                               1.0);
+        QCOMPARE(b.newCanvasPx, QSize(576, 476));
+        QCOMPARE(b.newSelectionLogical, QRect(8, 8, 560, 460));
+        QCOMPARE(b.newSelectionDevice, QRect(8, 8, 560, 460));
+        QCOMPARE(b.imageOffsetPx, QPoint(40, 40));
+    }
+
+    void expandNegativeStepIsInverse()
+    {
+        for (qreal dpr : { 1.0, 2.0 }) {
+            const QSize canvas(QSize(416, 316) * dpr);
+            const QRect selL(8, 8, 400, 300);
+            const QRect selD(QPoint(qRound(8 * dpr), qRound(8 * dpr)),
+                             QSize(qRound(400 * dpr), qRound(300 * dpr)));
+            const CanvasExpansion up =
+              expandCanvas(canvas, selL, selD, 40, dpr);
+            const CanvasExpansion down = expandCanvas(
+              up.newCanvasPx, up.newSelectionLogical, up.newSelectionDevice, -40, dpr);
+            QCOMPARE(down.newCanvasPx, canvas);
+            QCOMPARE(down.newSelectionLogical, selL);
+            QCOMPARE(down.newSelectionDevice, selD);
+            QCOMPARE(down.objectShiftLogical, -up.objectShiftLogical);
+            QCOMPARE(down.imageOffsetPx, -up.imageOffsetPx);
+        }
+    }
+
+    void expandRepeatedThenInverseTwiceRoundTrips()
+    {
+        const QSize canvas(832, 632);
+        const QRect selL(8, 8, 400, 300);
+        const QRect selD(16, 16, 800, 600);
+        CanvasExpansion s1 = expandCanvas(canvas, selL, selD, 40, 2.0);
+        CanvasExpansion s2 = expandCanvas(
+          s1.newCanvasPx, s1.newSelectionLogical, s1.newSelectionDevice, 40, 2.0);
+        CanvasExpansion d1 = expandCanvas(
+          s2.newCanvasPx, s2.newSelectionLogical, s2.newSelectionDevice, -40, 2.0);
+        CanvasExpansion d2 = expandCanvas(
+          d1.newCanvasPx, d1.newSelectionLogical, d1.newSelectionDevice, -40, 2.0);
+        QCOMPARE(d2.newCanvasPx, canvas);
+        QCOMPARE(d2.newSelectionLogical, selL);
+        QCOMPARE(d2.newSelectionDevice, selD);
+    }
+
+    // The original image (selection top-left plus the step) never moves
+    // relative to the objects: both shift by the same logical step.
+    void expandOffsetsMatchAtFractionalDpr()
+    {
+        const CanvasExpansion e = expandCanvas(
+          QSize(300, 200), QRect(8, 8, 100, 50), QRect(12, 12, 150, 75), 40, 1.5);
+        QCOMPARE(e.imageOffsetPx, QPoint(60, 60));
+        QCOMPARE(e.newCanvasPx, QSize(420, 320));
+        QCOMPARE(e.newSelectionDevice, QRect(12, 12, 270, 195));
+    }
+
+    void expandZeroStepIsNoOp()
+    {
+        const CanvasExpansion e = expandCanvas(
+          QSize(416, 316), QRect(8, 8, 400, 300), QRect(8, 8, 400, 300), 0, 1.0);
+        QCOMPARE(e.newCanvasPx, QSize(416, 316));
+        QCOMPARE(e.imageOffsetPx, QPoint(0, 0));
+        QCOMPARE(e.newSelectionLogical, QRect(8, 8, 400, 300));
+    }
+
+    void expandInvalidDprFallsBackToOne()
+    {
+        const CanvasExpansion e = expandCanvas(
+          QSize(416, 316), QRect(8, 8, 400, 300), QRect(8, 8, 400, 300), 40, 0.0);
+        QCOMPARE(e.imageOffsetPx, QPoint(40, 40));
+    }
 };
 
 QTEST_MAIN(TestEditCanvas)
