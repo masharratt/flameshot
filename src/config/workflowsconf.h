@@ -7,8 +7,12 @@
 #include <QMap>
 #include <QWidget>
 
+#include <QColor>
+
 class QCheckBox;
 class QLabel;
+class QPushButton;
+class QSpinBox;
 
 // Settings tab: which after-capture actions each workflow hotkey runs.
 class WorkflowsConf : public QWidget
@@ -23,6 +27,9 @@ public slots:
 private:
     void addWorkflow(const QString& hotkey, const QString& title);
     void onToggled(const QString& hotkey);
+    void addEffectsGroup();
+    void onEffectChanged();
+    void updatePreview();
 
     struct Row
     {
@@ -31,4 +38,11 @@ private:
     };
     QMap<QString, Row> m_rows;
     bool m_updating = false;
+
+    QSpinBox* m_borderPx = nullptr;
+    QPushButton* m_borderColor = nullptr;
+    QSpinBox* m_cornerRadius = nullptr;
+    QCheckBox* m_shadow = nullptr;
+    QLabel* m_preview = nullptr;
+    QColor m_borderColorValue;
 };

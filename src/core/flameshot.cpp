@@ -52,6 +52,7 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "utils/abstractlogger.h"
 #include "utils/capturehistory.h"
 #include "utils/confighandler.h"
+#include "utils/imageeffects.h"
 #include "utils/screengrabber.h"
 #include "utils/screenshotsaver.h"
 #include "widgets/capture/capturewidget.h"
@@ -574,8 +575,12 @@ public:
             ? QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)
             : m_req.path();
         QString savedPath;
-        if (!saveToFilesystem(
-              pixmap, dir, QString(), &savedPath, m_req.overwriteExisting())) {
+        if (!saveToFilesystem(pixmap,
+                              dir,
+                              QString(),
+                              &savedPath,
+                              m_req.overwriteExisting(),
+                              saveExtensionOverride())) {
             return {};
         }
         // History and other listeners rely on this firing for every save
@@ -628,14 +633,44 @@ public:
 
     QPixmap applyEffects(const QPixmap& pixmap) override
     {
-        // cfn: identity until P5 image effects land, replace when ImageEffects exists
-        return pixmap;
+        const EffectSettings settings = currentEffectSettings();
+        m_effectsNeedAlpha = imageeffects::needsAlpha(settings);
+        return QPixmap::fromImage(
+          imageeffects::applyEffects(pixmap.toImage(), settings));
     }
 
 private:
+    static EffectSettings currentEffectSettings()
+    {
+        ConfigHandler config;
+        EffectSettings settings;
+        settings.borderPx = config.effectBorderPx();
+        settings.borderColor = config.effectBorderColor();
+        settings.cornerRadius = config.effectCornerRadius();
+        settings.shadow = config.effectShadow();
+        return settings;
+    }
+
+    // JPEG cannot hold transparency, so such captures are saved as PNG
+    QString saveExtensionOverride() const
+    {
+        if (!m_effectsNeedAlpha) {
+            return {};
+        }
+        const QString ext = ConfigHandler().saveAsFileExtension().toLower();
+        if (ext != QLatin1String("jpg") && ext != QLatin1String("jpeg")) {
+            return {};
+        }
+        AbstractLogger::info()
+          << QObject::tr("Effects need transparency, saving this capture as "
+                         "PNG instead of JPEG.");
+        return QStringLiteral("png");
+    }
+
     Flameshot* m_flameshot;
     const CaptureRequest& m_req;
     QRect m_selection;
+    bool m_effectsNeedAlpha = false;
 };
 
 } // namespace

@@ -40,13 +40,16 @@ bool saveToFilesystem(const QPixmap& capture,
                       const QString& path,
                       const QString& messagePrefix,
                       QString* savedPath,
-                      bool overwrite)
+                      bool overwrite,
+                      const QString& forceExtension)
 {
     QString completePath =
       (overwrite && QFileInfo(path).isFile())
         ? path
         : FileNameHandler().properScreenshotPath(
-            path, ConfigHandler().saveAsFileExtension());
+            path,
+            forceExtension.isEmpty() ? ConfigHandler().saveAsFileExtension()
+                                     : forceExtension);
     QFile file{ completePath };
     bool okay = false;
 

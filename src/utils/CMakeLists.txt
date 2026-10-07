@@ -27,6 +27,7 @@ target_sources(
           history.cpp
           capturehistory.cpp
           strfparse.cpp
+          imageeffects.cpp
 )
 
 IF (UNIX AND NOT APPLE)
