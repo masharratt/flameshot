@@ -1389,6 +1389,10 @@ void CaptureWidget::initPanel()
     // TODO replace with a CaptureWidget signal
     emit m_sidePanel->colorChanged(m_context.color);
     emit toolSizeChanged(m_context.toolSize);
+    if (m_editMode) {
+        // The editor window shows colour and size in its settings bar
+        m_sidePanel->hideColorAndSizeControls();
+    }
     m_panel->pushWidget(m_sidePanel);
 
     // Fill undo/redo/history list widget
@@ -2088,6 +2092,28 @@ QVector<CaptureToolButton*> CaptureWidget::toolbarButtons() const
 QWidget* CaptureWidget::sidePanel() const
 {
     return m_panel;
+}
+
+QColor CaptureWidget::drawColor() const
+{
+    return m_context.color;
+}
+
+int CaptureWidget::toolSize() const
+{
+    return m_context.toolSize;
+}
+
+// Size change from outside the capture widget. The toolSizeChanged signal is
+// wired to onToolSizeChanged, so emitting it applies the size exactly as the
+// side panel does and refreshes every listener.
+void CaptureWidget::applyToolSize(int size)
+{
+    const int clamped = qBound(1, size, maxToolSize);
+    if (clamped != m_context.toolSize) {
+        emit toolSizeChanged(clamped);
+    }
+    onToolSizeSettled(clamped);
 }
 
 QWidget* CaptureWidget::sidePanelToggle() const

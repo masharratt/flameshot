@@ -10,6 +10,7 @@
 #include "widgets/capture/capturetoolbutton.h"
 #include "widgets/capture/capturewidget.h"
 #include "widgets/editcanvas.h"
+#include "widgets/editorsettingsbar.h"
 #include "platform/windowspace.h"
 
 #include <QCursor>
@@ -75,6 +76,7 @@ EditorWindow::EditorWindow(const QString& path, const QPixmap& image)
         b->show();
     }
     addExpandButton();
+    addSettingsBar();
     m_toolbar->setFixedHeight(toolbarHeightFor(width()));
     layoutToolbar();
     dockSidePanel();
@@ -117,6 +119,33 @@ void EditorWindow::addExpandButton()
     m_expandButton->show();
 }
 
+// Colour and size row under the tool buttons. Edits go to the CaptureWidget
+// slots the side panel uses; its signals keep the bar in sync with changes
+// made anywhere else (wheel, radial picker, shortcuts, side panel).
+void EditorWindow::addSettingsBar()
+{
+    m_settingsBar = new EditorSettingsBar(m_toolbar);
+    m_settingsBar->setColor(m_capture->drawColor());
+    m_settingsBar->setSize(m_capture->toolSize());
+    connect(m_settingsBar,
+            &EditorSettingsBar::colorPicked,
+            m_capture,
+            &CaptureWidget::setDrawColor);
+    connect(m_settingsBar,
+            &EditorSettingsBar::sizePicked,
+            m_capture,
+            &CaptureWidget::applyToolSize);
+    connect(m_capture,
+            &CaptureWidget::colorChanged,
+            m_settingsBar,
+            &EditorSettingsBar::setColor);
+    connect(m_capture,
+            &CaptureWidget::toolSizeChanged,
+            m_settingsBar,
+            &EditorSettingsBar::setSize);
+    m_settingsBar->show();
+}
+
 void EditorWindow::growToCanvas(const QSize& canvasLogical)
 {
     QScreen* screen = windowHandle() ? windowHandle()->screen() : nullptr;
@@ -143,6 +172,11 @@ EditorWindow::~EditorWindow()
 }
 
 int EditorWindow::toolbarHeightFor(int width) const
+{
+    return buttonRowsHeightFor(width) + EditorSettingsBar::barHeight();
+}
+
+int EditorWindow::buttonRowsHeightFor(int width) const
 {
     const int size = GlobalValues::buttonBaseSize();
     const int rows = toolbarRows(
@@ -176,6 +210,10 @@ void EditorWindow::layoutToolbar()
     if (m_expandButton) {
         m_expandButton->move(kToolbarPad + (i % perRow) * (size + kToolbarSpacing),
                              kToolbarPad + (i / perRow) * (size + kToolbarSpacing));
+    }
+    if (m_settingsBar) {
+        const int y = buttonRowsHeightFor(width());
+        m_settingsBar->setGeometry(0, y, width(), EditorSettingsBar::barHeight());
     }
 }
 

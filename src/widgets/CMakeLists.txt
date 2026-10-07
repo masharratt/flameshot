@@ -47,6 +47,8 @@ target_sources(
         capturehistorywindow.cpp
         editorwindow.cpp
         editcanvas.cpp
+        editorsettings.cpp
+        editorsettingsbar.cpp
         toaststack.cpp
         draggablewidgetmaker.cpp
         imagelabel.cpp

@@ -41,6 +41,7 @@ SidePanelWidget::SidePanelWidget(QPixmap* p, QWidget* parent)
     m_toolSizeSpin->setSingleStep(1);
     m_toolSizeSpin->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
+    m_colorSizeWidgets << activeToolSizeText << m_toolSizeSpin;
     toolSizeHBox->addWidget(activeToolSizeText);
     toolSizeHBox->addWidget(m_toolSizeSpin);
 
@@ -49,6 +50,7 @@ SidePanelWidget::SidePanelWidget(QPixmap* p, QWidget* parent)
     m_toolSizeSlider->setValue(m_toolSize);
     m_toolSizeSlider->setMinimumWidth(minSliderWidth);
 
+    m_colorSizeWidgets << m_toolSizeSlider;
     colorLayout->addLayout(toolSizeHBox, 0, 0);
     colorLayout->addWidget(m_toolSizeSlider, 1, 0);
 
@@ -59,6 +61,7 @@ SidePanelWidget::SidePanelWidget(QPixmap* p, QWidget* parent)
     m_colorLabel = new QLabel();
     m_colorLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 
+    m_colorSizeWidgets << colorText << m_colorLabel;
     colorHBox->addWidget(colorText);
     colorHBox->addWidget(m_colorLabel);
     colorLayout->addLayout(colorHBox, 2, 0);
@@ -77,6 +80,7 @@ SidePanelWidget::SidePanelWidget(QPixmap* p, QWidget* parent)
     QIcon grabIcon(modifier + "colorize.svg");
     m_colorGrabButton = new QPushButton(grabIcon, tr("Grab Color"));
 
+    m_colorSizeWidgets << m_colorWheel << m_colorHex;
     m_layout->addWidget(m_colorGrabButton);
     m_layout->addWidget(m_colorWheel);
     m_layout->addWidget(m_colorHex);
@@ -138,6 +142,13 @@ SidePanelWidget::SidePanelWidget(QPixmap* p, QWidget* parent)
             qOverload<int>(&QSpinBox::valueChanged),
             this,
             &SidePanelWidget::gridSizeChanged);
+}
+
+void SidePanelWidget::hideColorAndSizeControls()
+{
+    for (QWidget* w : m_colorSizeWidgets) {
+        w->hide();
+    }
 }
 
 void SidePanelWidget::onColorChanged(const QColor& color)

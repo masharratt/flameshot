@@ -11,6 +11,7 @@
 class CaptureButton;
 class CaptureToolButton;
 class CaptureWidget;
+class EditorSettingsBar;
 class QScrollArea;
 
 // A normal top-level window that edits a saved capture. It hosts a
@@ -41,6 +42,9 @@ private:
     void layoutToolbar();
     void dockSidePanel();
     void addExpandButton();
+    void addSettingsBar();
+    // Height of the button rows alone, without the settings row
+    int buttonRowsHeightFor(int width) const;
     // Grow the window (never shrink it) so a larger canvas shows, up to 90%
     // of the screen; beyond that the scroll area takes over.
     void growToCanvas(const QSize& canvasLogical);
@@ -50,5 +54,6 @@ private:
     QWidget* m_toolbar{ nullptr };
     QVector<CaptureToolButton*> m_buttons;
     CaptureButton* m_expandButton{ nullptr };
+    EditorSettingsBar* m_settingsBar{ nullptr };
     QPixmap m_image;
 };

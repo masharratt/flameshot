@@ -1,6 +1,6 @@
 # Feature Status (masharratt/flameshot fork)
 
-**Last Updated:** 2026-10-07 (expand canvas in the editor)
+**Last Updated:** 2026-10-07 (editor settings bar)
 
 | Token | Meaning |
 |-------|---------|
@@ -24,3 +24,4 @@ Plan: `planning/PLAN_sharex_fork.md` (local, not committed).
 | Ruler tool | beta | Editor tool that draws a measured line labelled with length and width x height in physical pixels. | Tool system | Not yet checked by hand in the running app. |
 | GIF / MP4 recording | dev | RECORD_MP4 and RECORD_GIF hotkeys (and tray items) pick an area, record it with ScreenCaptureKit, and save MP4 or GIF with a history entry and toast. Options `gifFps`, `gifMaxWidth` on the Workflows tab. | macOS 15+, ScreenCaptureKit, AVFoundation, ImageIO | Builds; never run. macOS 15+ only, hidden elsewhere. No audio. |
 | Expand canvas | beta | Editor toolbar button that adds 40 pt of white space on every side so you can draw outside the image; drawings move with the image and Cmd+Z undoes it. | Windowed editor | Window grows but does not shrink on undo. No keyboard shortcut. |
+| Editor settings bar | beta | Second toolbar row in the windowed editor with colour swatches from the user palette, a custom colour button and a size slider, kept in sync with all other ways of changing them. | Windowed editor | Every size change is saved as the new default. |

@@ -64,6 +64,9 @@ public:
 public slots:
     bool commitCurrentTool();
     void deleteToolWidgetOrClose();
+    // Same effect as changing colour / size in the side panel
+    void setDrawColor(const QColor& c);
+    void applyToolSize(int size);
 
 signals:
     void colorChanged(const QColor& c);
@@ -85,7 +88,6 @@ private slots:
     void handleToolSignal(CaptureTool::Request r);
     void handleButtonLeftClick(CaptureToolButton* b);
     void handleButtonRightClick(CaptureToolButton* b);
-    void setDrawColor(const QColor& c);
     void onToolSizeChanged(int size);
     void onToolSizeSettled(int size);
     void updateActiveLayer(int layer);
@@ -106,6 +108,9 @@ public:
     // host window can place them outside the scrolled canvas.
     QVector<CaptureToolButton*> toolbarButtons() const;
     QWidget* sidePanel() const;
+    // Current draw colour and tool size (for the editor settings bar)
+    QColor drawColor() const;
+    int toolSize() const;
     QWidget* sidePanelToggle() const;
 
     // Windowed editor: add white space on every edge, undoable. Does nothing

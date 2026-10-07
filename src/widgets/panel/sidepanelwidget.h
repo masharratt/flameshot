@@ -28,6 +28,9 @@ class SidePanelWidget : public QWidget
 public:
     explicit SidePanelWidget(QPixmap* p, QWidget* parent = nullptr);
 
+    // Hide the colour and size controls; the colour grabber stays
+    void hideColorAndSizeControls();
+
 signals:
     void colorChanged(const QColor& color);
     void toolSizeChanged(int size);
@@ -65,6 +68,7 @@ private:
     QColor m_revertColor;
     QSpinBox* m_toolSizeSpin;
     QSlider* m_toolSizeSlider;
+    QList<QWidget*> m_colorSizeWidgets;
     int m_toolSize{};
     QCheckBox* m_gridCheck{ nullptr };
     QSpinBox* m_gridSizeSpin{ nullptr };
