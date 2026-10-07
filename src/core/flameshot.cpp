@@ -45,7 +45,9 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "config/cacheutils.h"
 #include "config/configresolver.h"
 #include "config/configwindow.h"
+#include "core/actionrunner.h"
 #include "core/capturefirstrequest.h"
+#include "core/hotkeyutils.h"
 #include "core/qguiappcurrentscreen.h"
 #include "utils/abstractlogger.h"
 #include "utils/capturehistory.h"
@@ -87,33 +89,9 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 Flameshot::Flameshot()
   : m_haveExternalWidget(false)
   , m_captureWindow(nullptr)
-#if (defined(Q_OS_MACOS) || defined(Q_OS_WIN))
-  , m_HotkeyScreenshotCapture(nullptr)
-#endif
-#if defined(Q_OS_MACOS)
-  , m_HotkeyScreenshotHistory(nullptr)
-#endif
 {
     QString StyleSheet = CaptureButton::globalStyleSheet();
     qApp->setStyleSheet(StyleSheet);
-
-    connect(this,
-            &Flameshot::captureSaved,
-            this,
-            [this](const QString& path,
-                   const QPixmap& capture,
-                   const QRect& selection,
-                   const QRect& globalRect) {
-                ConfigHandler config;
-                if (m_toastRequested && config.captureFirst() &&
-                    config.captureToastSeconds() > 0) {
-                    CaptureToast::showFor(path,
-                                          capture,
-                                          selection,
-                                          globalRect,
-                                          config.captureToastSeconds());
-                }
-            });
 
     // Every successful save is recorded in the capture history
     connect(this,
@@ -138,38 +116,103 @@ Flameshot::Flameshot()
     }
 #endif
 #if (defined(Q_OS_MACOS) || defined(Q_OS_WIN))
-    // Set global shortcuts for MacOS or Windows
-    m_HotkeyScreenshotCapture = new QHotkey(
-      QKeySequence(ConfigHandler().shortcut("TAKE_SCREENSHOT")), true, this);
-    QObject::connect(m_HotkeyScreenshotCapture,
-                     &QHotkey::activated,
-                     qApp,
-                     [this]() {
-                         if (ConfigHandler().captureFirst()) {
-                             gui(buildCaptureFirstRequest(
-                               ConfigHandler().savePath(),
-                               QStandardPaths::writableLocation(
-                                 QStandardPaths::PicturesLocation)));
-                         } else {
-                             gui();
-                         }
-                     });
-#endif
-#if defined(Q_OS_MACOS)
-    m_HotkeyScreenshotHistory = new QHotkey(
-      QKeySequence(ConfigHandler().shortcut("SCREENSHOT_HISTORY")), true, this);
-    QObject::connect(m_HotkeyScreenshotHistory,
-                     &QHotkey::activated,
-                     qApp,
-                     [this]() {
-#if ENABLE_IMGUR
-                         history();
-#else
-                         CaptureHistoryWindow::showWindow();
-#endif
-                     });
+    // Global shortcuts for MacOS or Windows. Changes in the config file are
+    // applied without a restart; only changed key sequences are touched.
+    m_hotkeyDebounce = new QTimer(this);
+    m_hotkeyDebounce->setSingleShot(true);
+    m_hotkeyDebounce->setInterval(300);
+    connect(m_hotkeyDebounce, &QTimer::timeout, this, &Flameshot::syncHotkeys);
+    connect(ConfigHandler::getInstance(),
+            &ConfigHandler::fileChanged,
+            m_hotkeyDebounce,
+            qOverload<>(&QTimer::start));
+    syncHotkeys();
 #endif
 }
+
+#if (defined(Q_OS_MACOS) || defined(Q_OS_WIN))
+namespace {
+
+// Shortcut names registered as global hotkeys on this platform
+QStringList globalHotkeyNames()
+{
+    QStringList names = ConfigHandler::workflowHotkeys();
+#if defined(Q_OS_MACOS)
+    names << QStringLiteral("SCREENSHOT_HISTORY");
+#endif
+    return names;
+}
+
+} // namespace
+
+void Flameshot::syncHotkeys()
+{
+    ConfigHandler config;
+    QMap<QString, QString> now;
+    for (const QString& name : globalHotkeyNames()) {
+        now.insert(name, config.shortcut(name));
+    }
+
+    for (const QString& name : changedShortcuts(m_hotkeySequences, now)) {
+        if (!now.contains(name)) {
+            continue;
+        }
+        QHotkey* hotkey = m_hotkeys.value(name, nullptr);
+        if (hotkey == nullptr) {
+            hotkey = new QHotkey(this);
+            m_hotkeys.insert(name, hotkey);
+            connect(hotkey, &QHotkey::activated, qApp, [this, name]() {
+                onHotkeyActivated(name);
+            });
+        }
+
+        const QKeySequence sequence(now.value(name));
+        if (sequence.isEmpty()) {
+            hotkey->setRegistered(false);
+            continue;
+        }
+        hotkey->setShortcut(sequence, true);
+        if (!hotkey->isRegistered()) {
+            QString msg = tr("Could not register the global shortcut %1 for "
+                             "%2. Another app may be using it.")
+                            .arg(sequence.toString(), name);
+#if defined(Q_OS_MACOS)
+            if (isOptionOnlyShortcut(sequence)) {
+                msg += QLatin1Char(' ') +
+                       tr("macOS does not allow shortcuts that only use "
+                          "Option or Option+Shift.");
+            }
+#endif
+            AbstractLogger::warning() << msg;
+        }
+    }
+    m_hotkeySequences = now;
+}
+
+void Flameshot::onHotkeyActivated(const QString& name)
+{
+    if (name == QLatin1String("SCREENSHOT_HISTORY")) {
+#if ENABLE_IMGUR
+        history();
+#else
+        CaptureHistoryWindow::showWindow();
+#endif
+        return;
+    }
+
+    ConfigHandler config;
+    // A hotkey with a workflow always runs its actions; TAKE_SCREENSHOT keeps
+    // honouring the capture-first switch.
+    if (name == QLatin1String("CAPTURE_AND_EDIT") || config.captureFirst()) {
+        gui(buildCaptureFirstRequest(
+          name,
+          config.savePath(),
+          QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)));
+    } else {
+        gui();
+    }
+}
+#endif
 
 Flameshot* Flameshot::instance()
 {
@@ -510,6 +553,114 @@ void Flameshot::requestCapture(const CaptureRequest& request)
     }
 }
 
+namespace {
+
+// Real side effects of the after-capture actions
+class FlameshotActionSink : public ActionSink
+{
+public:
+    FlameshotActionSink(Flameshot* flameshot,
+                        const CaptureRequest& req,
+                        const QRect& selection)
+      : m_flameshot(flameshot)
+      , m_req(req)
+      , m_selection(selection)
+    {}
+
+    QString save(const QPixmap& pixmap) override
+    {
+        const QString dir =
+          m_req.path().isEmpty()
+            ? QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)
+            : m_req.path();
+        QString savedPath;
+        if (!saveToFilesystem(
+              pixmap, dir, QString(), &savedPath, m_req.overwriteExisting())) {
+            return {};
+        }
+        // History and other listeners rely on this firing for every save
+        emit m_flameshot->captureSaved(
+          savedPath, pixmap, m_selection, m_req.capturedGlobalRect());
+        return savedPath;
+    }
+
+    void copyImage(const QPixmap& pixmap) override
+    {
+        FlameshotDaemon::copyToClipboard(pixmap);
+    }
+
+    void copyText(const QString& text) override
+    {
+        FlameshotDaemon::copyToClipboard(
+          text, QObject::tr("Path copied to clipboard."));
+    }
+
+    void openEditor(const QString& path,
+                    const QPixmap& pixmap,
+                    const QRect& globalRect) override
+    {
+        // The capture window may still be shutting down when this runs, and
+        // gui() refuses to open while it exists, so wait for the event loop.
+        QPointer<Flameshot> flameshot(m_flameshot);
+        QTimer::singleShot(0, m_flameshot, [flameshot, path, pixmap, globalRect]() {
+            if (flameshot) {
+                flameshot->editSavedCapture(path, pixmap, globalRect, true);
+            }
+        });
+    }
+
+    void pin(const QPixmap& pixmap, const QRect& selection) override
+    {
+        FlameshotDaemon::createPin(pixmap, selection);
+    }
+
+    void showToast(const QString& path,
+                   const QPixmap& pixmap,
+                   const QRect& selection,
+                   const QRect& globalRect) override
+    {
+        CaptureToast::showFor(path,
+                              pixmap,
+                              selection,
+                              globalRect,
+                              ConfigHandler().captureToastSeconds());
+    }
+
+    QPixmap applyEffects(const QPixmap& pixmap) override
+    {
+        // cfn: identity until P5 image effects land, replace when ImageEffects exists
+        return pixmap;
+    }
+
+private:
+    Flameshot* m_flameshot;
+    const CaptureRequest& m_req;
+    QRect m_selection;
+};
+
+} // namespace
+
+void Flameshot::runWorkflow(const QPixmap& capture,
+                            const QRect& selection,
+                            const CaptureRequest& req)
+{
+    FlameshotActionSink sink(this, req, selection);
+    CaptureResult result;
+    result.pixmap = capture;
+    result.selection = selection;
+    result.globalRect = req.capturedGlobalRect();
+    const RunReport report = ActionRunner(sink).run(
+      ConfigHandler().workflowActions(req.workflow()), result);
+    if (!report.skipped.isEmpty()) {
+        QStringList names;
+        for (CaptureAction a : report.skipped) {
+            names << toName(a);
+        }
+        AbstractLogger::warning(AbstractLogger::Stderr)
+          << tr("Skipped after-capture actions: %1").arg(names.join(", "));
+    }
+}
+
 void Flameshot::exportCapture(const QPixmap& capture,
                               QRect& selection,
                               const CaptureRequest& req)
@@ -534,7 +685,13 @@ void Flameshot::exportCapture(const QPixmap& capture,
         }
     }
 
-    if (tasks & CR::SAVE) {
+    const bool hasWorkflow = !req.workflow().isEmpty();
+    if (hasWorkflow) {
+        // The hotkey's configured actions replace the SAVE and COPY tasks
+        runWorkflow(capture, selection, req);
+    }
+
+    if ((tasks & CR::SAVE) && !hasWorkflow) {
         if (req.path().isEmpty()) {
             saveToFilesystemGUI(capture);
         } else {
@@ -544,15 +701,13 @@ void Flameshot::exportCapture(const QPixmap& capture,
                                  QString(),
                                  &savedPath,
                                  req.overwriteExisting())) {
-                m_toastRequested = req.captureFirst();
                 emit captureSaved(
                   savedPath, capture, selection, req.capturedGlobalRect());
-                m_toastRequested = false;
             }
         }
     }
 
-    if (tasks & CR::COPY) {
+    if ((tasks & CR::COPY) && !hasWorkflow) {
         FlameshotDaemon::copyToClipboard(capture);
     }
 

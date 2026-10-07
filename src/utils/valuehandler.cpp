@@ -1,4 +1,5 @@
 #include "valuehandler.h"
+#include "core/actionlist.h"
 #include "tools/capturetool.h"
 #include "utils/confighandler.h"
 #include "utils/screengrabber.h"
@@ -571,4 +572,51 @@ QVariant Region::process(const QVariant& val)
     }
 
     return QRect(x, y, w, h).normalized();
+}
+
+// ACTION LIST
+
+namespace {
+// QSettings cannot store an empty list, so "no actions" is written as this
+const QString kNoActions = QStringLiteral("none");
+} // namespace
+
+ActionList::ActionList(const QString& hotkeyName)
+  : m_hotkeyName(hotkeyName)
+{}
+
+bool ActionList::check(const QVariant& val)
+{
+    const QStringList names = val.toStringList();
+    if (names == QStringList{ kNoActions }) {
+        return true;
+    }
+    return parseActionList(names).unknown.isEmpty();
+}
+
+QVariant ActionList::fallback()
+{
+    return serialise(defaultActionsFor(m_hotkeyName));
+}
+
+QVariant ActionList::process(const QVariant& val)
+{
+    const QStringList names = val.toStringList();
+    if (names == QStringList{ kNoActions }) {
+        return QStringList();
+    }
+    return serialise(parseActionList(names).actions);
+}
+
+QVariant ActionList::representation(const QVariant& val)
+{
+    const QStringList names = val.toStringList();
+    return names.isEmpty() ? QStringList{ kNoActions } : names;
+}
+
+QString ActionList::expected()
+{
+    return QStringLiteral(
+      "comma separated list of: save, copyImage, copyPath, openEditor, pin, "
+      "applyEffects, showToast");
 }

@@ -63,6 +63,16 @@ bool CaptureRequest::captureFirst() const
     return m_captureFirst;
 }
 
+QString CaptureRequest::workflow() const
+{
+    return m_workflow;
+}
+
+void CaptureRequest::setWorkflow(const QString& workflow)
+{
+    m_workflow = workflow;
+}
+
 void CaptureRequest::setCaptureFirst(bool captureFirst)
 {
     m_captureFirst = captureFirst;

@@ -3,6 +3,7 @@
 
 #include "shortcutswidget.h"
 #include "config/setshortcutwidget.h"
+#include "core/hotkeyutils.h"
 #include "core/qguiappcurrentscreen.h"
 #include "tools/capturetool.h"
 #include "tools/toolfactory.h"
@@ -61,6 +62,14 @@ void ShortcutsWidget::initInfoTable()
     m_table->setToolTip(tr("Available shortcuts in the screen capture mode."));
 
     m_layout->addWidget(m_table);
+
+#if defined(Q_OS_MACOS)
+    m_optionWarning = new QLabel(this);
+    m_optionWarning->setWordWrap(true);
+    m_optionWarning->setStyleSheet(QStringLiteral("color: #c0392b;"));
+    m_optionWarning->hide();
+    m_layout->addWidget(m_optionWarning);
+#endif
 
     m_table->setColumnCount(2);
     m_table->setSelectionMode(QAbstractItemView::NoSelection);
@@ -125,7 +134,33 @@ void ShortcutsWidget::populateInfoTable()
             item->setFlags(item->flags() ^ Qt::ItemIsEditable);
         }
     }
+#if defined(Q_OS_MACOS)
+    updateOptionWarning();
+#endif
 }
+
+#if defined(Q_OS_MACOS)
+// macOS 15+ refuses global hotkeys whose only modifiers are Option or
+// Option+Shift, so warn instead of letting them fail silently.
+void ShortcutsWidget::updateOptionWarning()
+{
+    QStringList offenders;
+    for (const QString& name : { QStringLiteral("TAKE_SCREENSHOT"),
+                                 QStringLiteral("CAPTURE_AND_EDIT"),
+                                 QStringLiteral("SCREENSHOT_HISTORY") }) {
+        if (isOptionOnlyShortcut(QKeySequence(m_config.shortcut(name)))) {
+            offenders << name;
+        }
+    }
+    m_optionWarning->setVisible(!offenders.isEmpty());
+    if (!offenders.isEmpty()) {
+        m_optionWarning->setText(
+          tr("macOS does not allow global shortcuts that only use Option or "
+             "Option+Shift. Choose another modifier for: %1")
+            .arg(offenders.join(", ")));
+    }
+}
+#endif
 
 void ShortcutsWidget::onShortcutCellClicked(int row, int col)
 {
@@ -211,15 +246,15 @@ void ShortcutsWidget::loadShortcuts()
     // Global hotkeys
 #if defined(Q_OS_MACOS)
     appendShortcut("TAKE_SCREENSHOT", tr("Capture screen"));
-#ifdef ENABLE_IMGUR
+    appendShortcut("CAPTURE_AND_EDIT", tr("Capture and edit"));
     appendShortcut("SCREENSHOT_HISTORY", tr("Screenshot history"));
-#endif
 #elif defined(Q_OS_WIN)
     if (this->isPrintScreenKeyForSnippingDisabled()) {
         m_shortcuts << (QStringList() << "" << QObject::tr("Capture screen")
                                       << "Print Screen");
     }
     appendShortcut("TAKE_SCREENSHOT", tr("Capture screen"));
+    appendShortcut("CAPTURE_AND_EDIT", tr("Capture and edit"));
 #ifdef ENABLE_IMGUR
     m_shortcuts << (QStringList() << "" << QObject::tr("Screenshot history")
                                   << "Shift+Print Screen");

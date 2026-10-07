@@ -11,34 +11,49 @@ class TestCaptureFirstRequest : public QObject
 private slots:
     void tasksAreExact()
     {
-        const CaptureRequest r = buildCaptureFirstRequest("/tmp/shots", "/pics");
-        const int expected = CaptureRequest::ACCEPT_ON_SELECT |
-                             CaptureRequest::SAVE | CaptureRequest::COPY;
-        QCOMPARE(static_cast<int>(r.tasks()), expected);
+        // The workflow's actions replace the SAVE and COPY tasks
+        const CaptureRequest r =
+          buildCaptureFirstRequest("TAKE_SCREENSHOT", "/tmp/shots", "/pics");
+        QCOMPARE(static_cast<int>(r.tasks()),
+                 static_cast<int>(CaptureRequest::ACCEPT_ON_SELECT));
         QCOMPARE(r.captureMode(), CaptureRequest::GRAPHICAL_MODE);
+    }
+
+    void carriesWorkflowName()
+    {
+        QCOMPARE(
+          buildCaptureFirstRequest("CAPTURE_AND_EDIT", "/a", "/b").workflow(),
+          QString("CAPTURE_AND_EDIT"));
+        QVERIFY(CaptureRequest(CaptureRequest::GRAPHICAL_MODE)
+                  .workflow()
+                  .isEmpty());
     }
 
     void usesSavePathWhenSet()
     {
-        const CaptureRequest r = buildCaptureFirstRequest("/tmp/shots", "/pics");
+        const CaptureRequest r =
+          buildCaptureFirstRequest("TAKE_SCREENSHOT", "/tmp/shots", "/pics");
         QCOMPARE(r.path(), QString("/tmp/shots"));
     }
 
     void fallsBackWhenSavePathEmpty()
     {
-        const CaptureRequest r = buildCaptureFirstRequest(QString(), "/pics");
+        const CaptureRequest r =
+          buildCaptureFirstRequest("TAKE_SCREENSHOT", QString(), "/pics");
         QCOMPARE(r.path(), QString("/pics"));
     }
 
     void marksRequestAsCaptureFirst()
     {
-        QVERIFY(buildCaptureFirstRequest("/a", "/b").captureFirst());
+        QVERIFY(buildCaptureFirstRequest("TAKE_SCREENSHOT", "/a", "/b")
+                  .captureFirst());
         QVERIFY(!CaptureRequest(CaptureRequest::GRAPHICAL_MODE).captureFirst());
     }
 
     void nativeFullscreenSkippedOnlyForCaptureFirst()
     {
-        const CaptureRequest first = buildCaptureFirstRequest("/a", "/b");
+        const CaptureRequest first =
+          buildCaptureFirstRequest("TAKE_SCREENSHOT", "/a", "/b");
         const CaptureRequest plain(CaptureRequest::GRAPHICAL_MODE);
         QVERIFY(!shouldUseNativeFullscreen(first, true));
         QVERIFY(shouldUseNativeFullscreen(plain, true));
@@ -48,7 +63,8 @@ private slots:
 
     void hasNoInitialSelection()
     {
-        const CaptureRequest r = buildCaptureFirstRequest("/a", "/b");
+        const CaptureRequest r =
+          buildCaptureFirstRequest("TAKE_SCREENSHOT", "/a", "/b");
         QVERIFY(r.initialSelection().isNull());
     }
 

@@ -11,6 +11,7 @@
 
 class SetShortcutDialog;
 class QCheckBox;
+class QLabel;
 class QTableWidget;
 class QVBoxLayout;
 
@@ -38,6 +39,10 @@ private:
     QTableWidget* m_table;
     QVBoxLayout* m_layout;
     QList<QStringList> m_shortcuts;
+#if defined(Q_OS_MACOS)
+    QLabel* m_optionWarning = nullptr;
+    void updateOptionWarning();
+#endif
 
     void loadShortcuts();
     void appendShortcut(const QString& shortcutName,

@@ -6,6 +6,7 @@
 #include <QKeySequence>
 #include <QList>
 #include <QString>
+#include <QStringList>
 
 class QVariant;
 
@@ -211,6 +212,23 @@ class SaveFileExtension : public ValueHandler
     bool check(const QVariant& val) override;
     QVariant process(const QVariant& val) override;
     QString expected() override;
+};
+
+// Ordered list of after-capture action names for one hotkey. Invalid when any
+// name is unknown; repeated names are dropped.
+class ActionList : public ValueHandler
+{
+public:
+    explicit ActionList(const QString& hotkeyName);
+    bool check(const QVariant& val) override;
+    QVariant fallback() override;
+    QString expected() override;
+    QVariant representation(const QVariant& val) override;
+
+private:
+    QString m_hotkeyName;
+
+    QVariant process(const QVariant& val) override;
 };
 
 class Region : public ValueHandler

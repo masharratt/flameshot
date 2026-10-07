@@ -24,3 +24,6 @@ flameshot_add_unit_test(tst_capturefirstrequest SOURCES core/capturefirstrequest
 flameshot_add_unit_test(tst_toaststack SOURCES widgets/toaststack.cpp)
 flameshot_add_unit_test(tst_windowpick SOURCES platform/windowpick.cpp)
 flameshot_add_unit_test(tst_capturehistory SOURCES utils/capturehistory.cpp)
+flameshot_add_unit_test(tst_actionlist SOURCES core/actionlist.cpp)
+flameshot_add_unit_test(tst_actionrunner SOURCES core/actionrunner.cpp core/actionlist.cpp)
+flameshot_add_unit_test(tst_hotkeys SOURCES core/hotkeyutils.cpp)

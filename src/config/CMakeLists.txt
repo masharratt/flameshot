@@ -17,4 +17,5 @@ target_sources(
           styleoverride.cpp
           uicoloreditor.cpp
           visualseditor.cpp
+          workflowsconf.cpp
 )

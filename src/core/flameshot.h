@@ -6,6 +6,7 @@
 #include "core/capturerequest.h"
 #include "widgets/capture/capturewidget.h"
 
+#include <QMap>
 #include <QObject>
 #include <QPointer>
 #include <QVersionNumber>
@@ -14,6 +15,7 @@
 class ConfigWindow;
 class InfoWindow;
 class CaptureLauncher;
+class QTimer;
 class QWidget;
 #ifdef ENABLE_IMGUR
 class UploadHistory;
@@ -95,11 +97,13 @@ public slots:
 private:
     Flameshot();
     bool resolveAnyConfigErrors();
+    void runWorkflow(const QPixmap& capture,
+                     const QRect& selection,
+                     const CaptureRequest& req);
 
     // class members
     static Origin m_origin;
     bool m_haveExternalWidget;
-    bool m_toastRequested = false;
 
     QPointer<CaptureWidget> m_captureWindow;
     QPointer<InfoWindow> m_infoWindow;
@@ -116,9 +120,12 @@ private:
 #endif
 
 #if (defined(Q_OS_MACOS) || defined(Q_OS_WIN))
-    QHotkey* m_HotkeyScreenshotCapture;
-#endif
-#if defined(Q_OS_MACOS)
-    QHotkey* m_HotkeyScreenshotHistory;
+    // Global hotkeys by shortcut name. Entries are created once and only
+    // re-registered when their key sequence changes in the config.
+    void syncHotkeys();
+    void onHotkeyActivated(const QString& name);
+    QMap<QString, QHotkey*> m_hotkeys;
+    QMap<QString, QString> m_hotkeySequences;
+    QTimer* m_hotkeyDebounce = nullptr;
 #endif
 };

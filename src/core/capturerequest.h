@@ -47,6 +47,8 @@ public:
     bool overwriteExisting() const;
     bool captureFirst() const;
     QRect capturedGlobalRect() const;
+    // Name of the hotkey that started this request ("" for CLI and editor).
+    QString workflow() const;
 
     void addTask(ExportTask task);
     void removeTask(ExportTask task);
@@ -60,6 +62,9 @@ public:
     // Marks a request made by the capture-first hotkey or tray path.
     void setCaptureFirst(bool captureFirst);
     void setCapturedGlobalRect(const QRect& rect);
+    // When set, the after-capture actions configured for this hotkey replace
+    // the SAVE and COPY tasks.
+    void setWorkflow(const QString& workflow);
     void setSelectedMonitor(int monitorIndex);
     int selectedMonitor() const;
     bool hasSelectedMonitor() const;
@@ -75,6 +80,7 @@ private:
     bool m_overwriteExisting = false;
     bool m_captureFirst = false;
     QRect m_capturedGlobalRect;
+    QString m_workflow;
     int m_selectedMonitor;
     bool m_hasSelectedMonitor;
 

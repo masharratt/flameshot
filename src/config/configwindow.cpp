@@ -7,6 +7,7 @@
 #include "config/generalconf.h"
 #include "config/shortcutswidget.h"
 #include "config/visualseditor.h"
+#include "config/workflowsconf.h"
 #include "utils/colorutils.h"
 #include "utils/confighandler.h"
 #include "utils/globalvalues.h"
@@ -90,6 +91,15 @@ ConfigWindow::ConfigWindow(QWidget* parent)
     m_tabWidget->addTab(
       m_shortcutsTab, QIcon(modifier + "shortcut.svg"), tr("Shortcuts"));
 
+    // workflows
+    m_workflows = new WorkflowsConf();
+    m_workflowsTab = new QWidget();
+    auto* workflowsLayout = new QVBoxLayout(m_workflowsTab);
+    m_workflowsTab->setLayout(workflowsLayout);
+    workflowsLayout->addWidget(m_workflows);
+    m_tabWidget->addTab(
+      m_workflowsTab, QIcon(modifier + "config.svg"), tr("Workflows"));
+
     // connect update sigslots
     connect(this,
             &ConfigWindow::updateChildren,
@@ -103,12 +113,17 @@ ConfigWindow::ConfigWindow(QWidget* parent)
             &ConfigWindow::updateChildren,
             m_generalConfig,
             &GeneralConf::updateComponents);
+    connect(this,
+            &ConfigWindow::updateChildren,
+            m_workflows,
+            &WorkflowsConf::updateComponents);
 
     // Error indicator (this must come last)
     initErrorIndicator(m_visualsTab, m_visuals);
     initErrorIndicator(m_filenameEditorTab, m_filenameEditor);
     initErrorIndicator(m_generalConfigTab, m_generalConfig);
     initErrorIndicator(m_shortcutsTab, m_shortcuts);
+    initErrorIndicator(m_workflowsTab, m_workflows);
 }
 
 void ConfigWindow::keyPressEvent(QKeyEvent* e)

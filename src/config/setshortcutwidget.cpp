@@ -15,6 +15,8 @@ SetShortcutDialog::SetShortcutDialog(QDialog* parent,
                                      const QString& shortcutName)
   : QDialog(parent)
 {
+    // Global hotkeys now apply without a restart, so the name is not needed
+    Q_UNUSED(shortcutName);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
     setWindowIcon(QIcon(GlobalValues::iconPath()));
     setWindowTitle(tr("Set Shortcut"));
@@ -43,18 +45,6 @@ SetShortcutDialog::SetShortcutDialog(QDialog* parent,
     msg =
       tr("Press Esc to cancel or Backspace to disable the keyboard shortcut.");
 #endif
-
-    auto restartMessageAdded = false;
-    if (shortcutName == "TAKE_SCREENSHOT" && restartMessageAdded == false) {
-        msg +=
-          "\n" + tr("Flameshot must be restarted for changes to take effect.");
-        restartMessageAdded = true;
-    }
-    if (shortcutName == "SCREENSHOT_HISTORY" && restartMessageAdded == false) {
-        msg +=
-          "\n" + tr("Flameshot must be restarted for changes to take effect.");
-        restartMessageAdded = true;
-    }
 
     auto* infoBottom = new QLabel(msg);
     infoBottom->setMargin(10);

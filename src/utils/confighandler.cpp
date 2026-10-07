@@ -107,6 +107,8 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("hoverWindowDetection"        ,Bool               ( true          )),
     OPTION("captureToastSeconds"         ,LowerBoundedInt    ( 0, 6          )),
     OPTION("captureHistoryMax"           ,LowerBoundedInt    ( 1, 500        )),
+    OPTION("actionsTakeScreenshot"       ,ActionList         ( "TAKE_SCREENSHOT"  )),
+    OPTION("actionsCaptureAndEdit"       ,ActionList         ( "CAPTURE_AND_EDIT" )),
     OPTION("uploadHistoryMax"            ,LowerBoundedInt    ( 0, 25         )),
     OPTION("undoLimit"                   ,BoundedInt         ( 0, 999, 100   )),
     // Interface tab
@@ -212,6 +214,7 @@ static QMap<QString, QSharedPointer<KeySequence>> recognizedShortcuts = {
 #else
     SHORTCUT("TYPE_DELETE_CURRENT_TOOL" ,   "Delete"                ),
 #endif
+    SHORTCUT("CAPTURE_AND_EDIT"         ,                           ),
     SHORTCUT("TYPE_PIN"                 ,                           ),
     SHORTCUT("TYPE_SIZEINCREASE"        ,                           ),
     SHORTCUT("TYPE_SIZEDECREASE"        ,                           ),
@@ -423,6 +426,33 @@ void ConfigHandler::setDefaultSettings()
         m_settings.remove(key);
     }
     m_settings.sync();
+}
+
+QStringList ConfigHandler::workflowHotkeys()
+{
+    return { QStringLiteral("TAKE_SCREENSHOT"),
+             QStringLiteral("CAPTURE_AND_EDIT") };
+}
+
+QList<CaptureAction> ConfigHandler::workflowActions(const QString& hotkey)
+{
+    if (hotkey == QLatin1String("TAKE_SCREENSHOT")) {
+        return parseActionList(actionsTakeScreenshot()).actions;
+    }
+    if (hotkey == QLatin1String("CAPTURE_AND_EDIT")) {
+        return parseActionList(actionsCaptureAndEdit()).actions;
+    }
+    return defaultActionsFor(hotkey);
+}
+
+void ConfigHandler::setWorkflowActions(const QString& hotkey,
+                                       const QList<CaptureAction>& actions)
+{
+    if (hotkey == QLatin1String("TAKE_SCREENSHOT")) {
+        setActionsTakeScreenshot(serialise(actions));
+    } else if (hotkey == QLatin1String("CAPTURE_AND_EDIT")) {
+        setActionsCaptureAndEdit(serialise(actions));
+    }
 }
 
 QString ConfigHandler::configFilePath() const

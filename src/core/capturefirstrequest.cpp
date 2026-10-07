@@ -2,14 +2,18 @@
 
 #include "capturefirstrequest.h"
 
-CaptureRequest buildCaptureFirstRequest(const QString& savePath,
+CaptureRequest buildCaptureFirstRequest(const QString& workflow,
+                                        const QString& savePath,
                                         const QString& picturesFallback)
 {
     CaptureRequest req(CaptureRequest::GRAPHICAL_MODE);
     req.addTask(CaptureRequest::ACCEPT_ON_SELECT);
-    req.addTask(CaptureRequest::COPY);
     req.setCaptureFirst(true);
+    req.setWorkflow(workflow);
+    // The path is where the Save action writes; the SAVE task itself is not
+    // used because the workflow replaces it.
     req.addSaveTask(savePath.isEmpty() ? picturesFallback : savePath);
+    req.removeTask(CaptureRequest::SAVE);
     return req;
 }
 

@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "core/actionlist.h"
 #include "widgets/capture/capturetoolbutton.h"
 
 #include <QSettings>
@@ -143,6 +144,12 @@ public:
     CONFIG_GETTER_SETTER(hoverWindowDetection, setHoverWindowDetection, bool)
     CONFIG_GETTER_SETTER(captureToastSeconds, setCaptureToastSeconds, int)
     CONFIG_GETTER_SETTER(captureHistoryMax, setCaptureHistoryMax, int)
+    CONFIG_GETTER_SETTER(actionsTakeScreenshot,
+                         setActionsTakeScreenshot,
+                         QStringList)
+    CONFIG_GETTER_SETTER(actionsCaptureAndEdit,
+                         setActionsCaptureAndEdit,
+                         QStringList)
     CONFIG_GETTER_SETTER(showSelectionGeometry, setShowSelectionGeometry, int)
     CONFIG_GETTER_SETTER(jpegQuality, setJpegQuality, int)
     CONFIG_GETTER_SETTER(reverseArrow, setReverseArrow, bool)
@@ -171,6 +178,12 @@ public:
     void setAllTheButtons();
     void setToolSize(CaptureTool::Type toolType, int size);
     int toolSize(CaptureTool::Type toolType);
+
+    // WORKFLOWS: hotkeys that run a configurable after-capture action list
+    static QStringList workflowHotkeys();
+    QList<CaptureAction> workflowActions(const QString& hotkey);
+    void setWorkflowActions(const QString& hotkey,
+                            const QList<CaptureAction>& actions);
 
     // DEFAULTS
     QString filenamePatternDefault();

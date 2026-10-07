@@ -8,9 +8,12 @@
 #include <QRect>
 #include <QString>
 
-// Request used by the hotkey and tray in capture-first mode: pick a region,
-// then copy and save immediately with no further clicks.
-CaptureRequest buildCaptureFirstRequest(const QString& savePath,
+// Request used by the hotkeys and tray in capture-first mode: pick a region,
+// then run the actions configured for `workflow` (a hotkey name such as
+// "TAKE_SCREENSHOT") with no further clicks. The request carries only
+// ACCEPT_ON_SELECT; saving and copying are done by the workflow's actions.
+CaptureRequest buildCaptureFirstRequest(const QString& workflow,
+                                        const QString& savePath,
                                         const QString& picturesFallback);
 
 // Native macOS fullscreen animates and slows rapid captures, so capture-first

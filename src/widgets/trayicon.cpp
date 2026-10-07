@@ -294,6 +294,7 @@ void TrayIcon::startGuiCapture()
     auto* widget =
       config.captureFirst()
         ? Flameshot::instance()->gui(buildCaptureFirstRequest(
+            QStringLiteral("TAKE_SCREENSHOT"),
             config.savePath(),
             QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)))
         : Flameshot::instance()->gui();
