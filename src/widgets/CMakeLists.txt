@@ -13,6 +13,8 @@ target_sources(
         recordingcontrol.h
         capturehistorywindow.h
         editorwindow.h
+        editedthumbnail.h
+        thumbnailgesture.h
         toaststack.h
         draggablewidgetmaker.h
         imagelabel.h
@@ -46,6 +48,8 @@ target_sources(
         recordingcontrol.cpp
         capturehistorywindow.cpp
         editorwindow.cpp
+        editedthumbnail.cpp
+        thumbnailgesture.cpp
         editcanvas.cpp
         editorsettings.cpp
         editorvisibility.cpp

@@ -64,6 +64,7 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "widgets/capturehistorywindow.h"
 #include "widgets/capturelauncher.h"
 #include "widgets/capturetoast.h"
+#include "widgets/editedthumbnail.h"
 #include "widgets/infowindow.h"
 
 #ifdef ENABLE_IMGUR
@@ -819,6 +820,10 @@ void Flameshot::exportCapture(const QPixmap& capture,
                                  req.overwriteExisting())) {
                 emit captureSaved(
                   savedPath, capture, selection, req.capturedGlobalRect());
+                // Only the editor window sets an edit image
+                if (!req.editImage().isNull()) {
+                    EditedThumbnail::showFor(savedPath, capture);
+                }
             }
         }
     }
