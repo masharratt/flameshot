@@ -5,6 +5,7 @@
 #include "tools/capturetool.h"
 #include "utils/abstractlogger.h"
 #include "utils/valuehandler.h"
+#include "widgets/thumbnailgesture.h"
 
 #include <QCoreApplication>
 #include <QDebug>
@@ -106,6 +107,7 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("captureFirst"                ,Bool               ( true          )),
     OPTION("hoverWindowDetection"        ,Bool               ( true          )),
     OPTION("captureToastSeconds"         ,LowerBoundedInt    ( 0, 6          )),
+    OPTION("editedThumbnailSeconds"      ,LowerBoundedInt    ( 0, kEditedThumbnailDefaultSeconds )),
     OPTION("effectBorderPx"              ,BoundedInt         ( 0, 100, 0     )),
     OPTION("effectBorderColor"           ,Color              ( Qt::black     )),
     OPTION("effectCornerRadius"          ,BoundedInt         ( 0, 200, 0     )),

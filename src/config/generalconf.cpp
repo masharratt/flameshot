@@ -48,6 +48,7 @@ GeneralConf::GeneralConf(QWidget* parent)
     initCaptureFirst();
     initHoverWindowDetection();
     initCaptureToastSeconds();
+    initEditedThumbnailSeconds();
     initCaptureHistoryMax();
     initShowHelp();
     initShowSidePanelButton();
@@ -120,6 +121,7 @@ void GeneralConf::_updateComponents(bool allowEmptySavePath)
     m_captureFirst->setChecked(config.captureFirst());
     m_hoverWindowDetection->setChecked(config.hoverWindowDetection());
     m_captureToastSeconds->setValue(config.captureToastSeconds());
+    m_editedThumbnailSeconds->setValue(config.editedThumbnailSeconds());
     m_captureHistoryMax->setValue(config.captureHistoryMax());
     m_reverseArrow->setChecked(config.reverseArrow());
     m_drawCircleCounterOutline->setChecked(config.drawCircleCounterOutline());
@@ -176,6 +178,11 @@ void GeneralConf::captureHistoryMax(int max)
 void GeneralConf::captureToastSeconds(int seconds)
 {
     ConfigHandler().setCaptureToastSeconds(seconds);
+}
+
+void GeneralConf::editedThumbnailSeconds(int seconds)
+{
+    ConfigHandler().setEditedThumbnailSeconds(seconds);
 }
 
 void GeneralConf::showHelpChanged(bool checked)
@@ -392,6 +399,32 @@ void GeneralConf::initCaptureToastSeconds()
             &GeneralConf::captureToastSeconds);
 
     vboxLayout->addWidget(m_captureToastSeconds);
+}
+
+void GeneralConf::initEditedThumbnailSeconds()
+{
+    auto* box = new QGroupBox(tr("After-edit thumbnail duration (seconds)"));
+    box->setFlat(true);
+    box->setToolTip(tr("How long the thumbnail stays after saving from the "
+                       "editor. 0 keeps it until you close it."));
+    m_layout->addWidget(box);
+
+    auto* vboxLayout = new QVBoxLayout();
+    box->setLayout(vboxLayout);
+
+    m_editedThumbnailSeconds = new QSpinBox(this);
+    m_editedThumbnailSeconds->setMinimum(0);
+    m_editedThumbnailSeconds->setMaximum(60);
+    QString foreground = this->palette().windowText().color().name();
+    m_editedThumbnailSeconds->setStyleSheet(
+      QStringLiteral("color: %1").arg(foreground));
+
+    connect(m_editedThumbnailSeconds,
+            static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+            this,
+            &GeneralConf::editedThumbnailSeconds);
+
+    vboxLayout->addWidget(m_editedThumbnailSeconds);
 }
 
 void GeneralConf::initSaveLastRegion()

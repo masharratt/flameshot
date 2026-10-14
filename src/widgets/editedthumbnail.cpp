@@ -23,7 +23,9 @@ const int kMargin = 16;
 
 QPointer<EditedThumbnail> EditedThumbnail::s_current;
 
-EditedThumbnail::EditedThumbnail(const QString& path, const QPixmap& image)
+EditedThumbnail::EditedThumbnail(const QString& path,
+                                 const QPixmap& image,
+                                 int seconds)
   : QWidget(nullptr,
             Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint |
               Qt::WindowDoesNotAcceptFocus)
@@ -46,14 +48,20 @@ EditedThumbnail::EditedThumbnail(const QString& path, const QPixmap& image)
     m_scaled.setDevicePixelRatio(dpr);
     const QSize logical = m_scaled.deviceIndependentSize().toSize();
     setFixedSize(logical + QSize(kBorder * 2, kBorder * 2));
+
+    m_timer.setSingleShot(true);
+    m_timer.setInterval(thumbnailCloseDelayMs(seconds));
+    connect(&m_timer, &QTimer::timeout, this, &QWidget::close);
 }
 
-void EditedThumbnail::showFor(const QString& path, const QPixmap& image)
+void EditedThumbnail::showFor(const QString& path,
+                              const QPixmap& image,
+                              int seconds)
 {
     if (s_current) {
         s_current->close();
     }
-    auto* thumb = new EditedThumbnail(path, image);
+    auto* thumb = new EditedThumbnail(path, image, seconds);
     s_current = thumb;
 
     QScreen* screen = QGuiApplication::screenAt(QCursor::pos());
@@ -64,6 +72,23 @@ void EditedThumbnail::showFor(const QString& path, const QPixmap& image)
       toastStackGeometry(screen->availableGeometry(), thumb->size(), 1, kMargin, 0);
     thumb->move(pos.first().topLeft());
     thumb->show();
+    if (thumb->m_timer.interval() > 0) {
+        thumb->m_timer.start();
+    }
+}
+
+void EditedThumbnail::enterEvent(QEnterEvent* event)
+{
+    m_timer.stop();
+    QWidget::enterEvent(event);
+}
+
+void EditedThumbnail::leaveEvent(QEvent* event)
+{
+    if (m_timer.interval() > 0) {
+        m_timer.start();
+    }
+    QWidget::leaveEvent(event);
 }
 
 void EditedThumbnail::paintEvent(QPaintEvent* event)

@@ -6,6 +6,11 @@
 #include <QMimeData>
 #include <QUrl>
 
+int thumbnailCloseDelayMs(int seconds)
+{
+    return seconds > 0 ? seconds * 1000 : 0;
+}
+
 ThumbnailAction thumbnailReleaseAction(Qt::MouseButton button)
 {
     switch (button) {

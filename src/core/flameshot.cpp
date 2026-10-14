@@ -822,7 +822,10 @@ void Flameshot::exportCapture(const QPixmap& capture,
                   savedPath, capture, selection, req.capturedGlobalRect());
                 // Only the editor window sets an edit image
                 if (!req.editImage().isNull()) {
-                    EditedThumbnail::showFor(savedPath, capture);
+                    EditedThumbnail::showFor(
+                      savedPath,
+                      capture,
+                      ConfigHandler().editedThumbnailSeconds());
                 }
             }
         }

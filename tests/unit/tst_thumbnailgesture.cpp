@@ -46,6 +46,23 @@ private slots:
         QVERIFY(!thumbnailShouldStartDrag(Qt::RightButton, QPoint(10, 10), QPoint(100, 100), 10));
     }
 
+    void defaultAutoCloseIsFourSeconds()
+    {
+        QCOMPARE(kEditedThumbnailDefaultSeconds, 4);
+    }
+
+    void autoCloseDelayInMilliseconds()
+    {
+        QCOMPARE(thumbnailCloseDelayMs(4), 4000);
+        QCOMPARE(thumbnailCloseDelayMs(60), 60000);
+    }
+
+    void zeroOrNegativeSecondsNeverAutoClose()
+    {
+        QCOMPARE(thumbnailCloseDelayMs(0), 0);
+        QCOMPARE(thumbnailCloseDelayMs(-3), 0);
+    }
+
     void dropPayloadCarriesFileAndImage()
     {
         QImage image(4, 3, QImage::Format_ARGB32);

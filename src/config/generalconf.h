@@ -38,6 +38,7 @@ private slots:
     void captureFirst(bool checked);
     void hoverWindowDetection(bool checked);
     void captureToastSeconds(int seconds);
+    void editedThumbnailSeconds(int seconds);
     void captureHistoryMax(int max);
     void showSidePanelButtonChanged(bool checked);
     void showDesktopNotificationChanged(bool checked);
@@ -111,6 +112,7 @@ private:
     void initCaptureFirst();
     void initHoverWindowDetection();
     void initCaptureToastSeconds();
+    void initEditedThumbnailSeconds();
     void initCaptureHistoryMax();
     void initShowSelectionGeometry();
     void initJpegQuality();
@@ -153,6 +155,7 @@ private:
     QCheckBox* m_captureFirst;
     QCheckBox* m_hoverWindowDetection;
     QSpinBox* m_captureToastSeconds;
+    QSpinBox* m_editedThumbnailSeconds;
     QSpinBox* m_captureHistoryMax;
     QCheckBox* m_uploadWithoutConfirmation;
     QPushButton* m_importButton;

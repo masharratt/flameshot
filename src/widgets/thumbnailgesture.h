@@ -9,6 +9,12 @@
 class QImage;
 class QMimeData;
 
+// Seconds the thumbnail stays before closing itself, unless configured
+constexpr int kEditedThumbnailDefaultSeconds = 4;
+
+// Auto-close delay for the configured seconds; 0 means never close
+int thumbnailCloseDelayMs(int seconds);
+
 // What a mouse release on the after-edit thumbnail does
 enum class ThumbnailAction
 {

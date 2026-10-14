@@ -143,6 +143,7 @@ public:
     CONFIG_GETTER_SETTER(captureFirst, setCaptureFirst, bool)
     CONFIG_GETTER_SETTER(hoverWindowDetection, setHoverWindowDetection, bool)
     CONFIG_GETTER_SETTER(captureToastSeconds, setCaptureToastSeconds, int)
+    CONFIG_GETTER_SETTER(editedThumbnailSeconds, setEditedThumbnailSeconds, int)
     CONFIG_GETTER_SETTER(effectBorderPx, setEffectBorderPx, int)
     CONFIG_GETTER_SETTER(effectBorderColor, setEffectBorderColor, QColor)
     CONFIG_GETTER_SETTER(effectCornerRadius, setEffectCornerRadius, int)
