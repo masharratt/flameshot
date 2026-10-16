@@ -382,6 +382,9 @@ void CaptureWidget::initButtons()
         (m_context.request.tasks() == CaptureRequest::PRINT_GEOMETRY)) {
         allButtonTypes.removeOne(CaptureTool::TYPE_ACCEPT);
         visibleButtonTypes.removeOne(CaptureTool::TYPE_ACCEPT);
+        // Like Accept, Beautify needs tasks to run on the finished capture
+        allButtonTypes.removeOne(CaptureTool::TYPE_BEAUTIFY);
+        visibleButtonTypes.removeOne(CaptureTool::TYPE_BEAUTIFY);
     } else {
         // Remove irrelevant buttons from both lists
         for (auto* buttonList : { &allButtonTypes, &visibleButtonTypes }) {

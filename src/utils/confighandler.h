@@ -4,6 +4,7 @@
 #pragma once
 
 #include "core/actionlist.h"
+#include "utils/imageeffects.h"
 #include "widgets/capture/capturetoolbutton.h"
 
 #include <QSettings>
@@ -148,6 +149,14 @@ public:
     CONFIG_GETTER_SETTER(effectBorderColor, setEffectBorderColor, QColor)
     CONFIG_GETTER_SETTER(effectCornerRadius, setEffectCornerRadius, int)
     CONFIG_GETTER_SETTER(effectShadow, setEffectShadow, bool)
+    CONFIG_GETTER_SETTER(effectPadding, setEffectPadding, int)
+    CONFIG_GETTER_SETTER(effectBackground, setEffectBackground, int)
+    CONFIG_GETTER_SETTER(effectBackgroundColor1, setEffectBackgroundColor1, QColor)
+    CONFIG_GETTER_SETTER(effectBackgroundColor2, setEffectBackgroundColor2, QColor)
+    CONFIG_GETTER_SETTER(beautifyAlways, setBeautifyAlways, bool)
+
+    // All effect options as one value, the single place that reads them
+    EffectSettings effectSettings();
     CONFIG_GETTER_SETTER(captureHistoryMax, setCaptureHistoryMax, int)
     CONFIG_GETTER_SETTER(gifFps, setGifFps, int)
     CONFIG_GETTER_SETTER(gifMaxWidth, setGifMaxWidth, int)

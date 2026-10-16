@@ -112,6 +112,11 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("effectBorderColor"           ,Color              ( Qt::black     )),
     OPTION("effectCornerRadius"          ,BoundedInt         ( 0, 200, 0     )),
     OPTION("effectShadow"                ,Bool               ( false         )),
+    OPTION("effectPadding"               ,BoundedInt         ( 0, 512, 64    )),
+    OPTION("effectBackground"            ,BoundedInt         ( 0, 2, 2       )),
+    OPTION("effectBackgroundColor1"      ,Color              ( QColor(0x8B, 0x5C, 0xF6) )),
+    OPTION("effectBackgroundColor2"      ,Color              ( QColor(0x3B, 0x82, 0xF6) )),
+    OPTION("beautifyAlways"              ,Bool               ( false         )),
     OPTION("captureHistoryMax"           ,LowerBoundedInt    ( 1, 500        )),
     OPTION("gifFps"                      ,BoundedInt         ( 1, 50, 15     )),
     OPTION("gifMaxWidth"                 ,BoundedInt         ( 120, 3840, 960)),
@@ -226,6 +231,7 @@ static QMap<QString, QSharedPointer<KeySequence>> recognizedShortcuts = {
     SHORTCUT("RECORD_MP4"               ,                           ),
     SHORTCUT("RECORD_GIF"               ,                           ),
     SHORTCUT("TYPE_PIN"                 ,                           ),
+    SHORTCUT("TYPE_BEAUTIFY"            ,                           ),
     SHORTCUT("TYPE_SIZEINCREASE"        ,                           ),
     SHORTCUT("TYPE_SIZEDECREASE"        ,                           ),
     SHORTCUT("TYPE_CIRCLECOUNT"         ,                           ),
@@ -233,6 +239,20 @@ static QMap<QString, QSharedPointer<KeySequence>> recognizedShortcuts = {
 // clang-format on
 
 // CLASS CONFIGHANDLER
+
+EffectSettings ConfigHandler::effectSettings()
+{
+    EffectSettings settings;
+    settings.borderPx = effectBorderPx();
+    settings.borderColor = effectBorderColor();
+    settings.cornerRadius = effectCornerRadius();
+    settings.shadow = effectShadow();
+    settings.paddingPx = effectPadding();
+    settings.backgroundMode = static_cast<BackgroundMode>(effectBackground());
+    settings.backgroundColor1 = effectBackgroundColor1();
+    settings.backgroundColor2 = effectBackgroundColor2();
+    return settings;
+}
 
 ConfigHandler::ConfigHandler()
 #ifndef USE_PORTABLE_CONFIG

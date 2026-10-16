@@ -47,6 +47,7 @@ target_sources(
   flameshot
   PRIVATE ruler/rulermath.h ruler/rulermath.cpp ruler/rulertool.h
           ruler/rulertool.cpp)
+target_sources(flameshot PRIVATE beautify/beautifytool.h beautify/beautifytool.cpp)
 target_sources(flameshot PRIVATE save/savetool.h save/savetool.cpp)
 target_sources(flameshot PRIVATE accept/accepttool.h accept/accepttool.cpp)
 target_sources(flameshot PRIVATE invert/inverttool.h invert/inverttool.cpp)

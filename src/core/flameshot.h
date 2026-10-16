@@ -114,7 +114,9 @@ private:
     bool resolveAnyConfigErrors();
     void runWorkflow(const QPixmap& capture,
                      const QRect& selection,
-                     const CaptureRequest& req);
+                     const CaptureRequest& req,
+                     bool effectsApplied,
+                     bool effectsNeedAlpha);
 
     // class members
     static Origin m_origin;

@@ -6,6 +6,7 @@
 #include "utils/imageeffects.h"
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QColorDialog>
 #include <QFormLayout>
 #include <QGroupBox>
@@ -104,6 +105,26 @@ void WorkflowsConf::addEffectsGroup()
 
     m_shadow = new QCheckBox(tr("Drop shadow"), box);
     form->addRow(QString(), m_shadow);
+
+    m_padding = new QSpinBox(box);
+    m_padding->setRange(0, 512);
+    m_padding->setSuffix(tr(" px"));
+    form->addRow(tr("Padding"), m_padding);
+
+    m_background = new QComboBox(box);
+    m_background->addItem(tr("None"), int(BackgroundMode::None));
+    m_background->addItem(tr("Solid"), int(BackgroundMode::Solid));
+    m_background->addItem(tr("Gradient"), int(BackgroundMode::Gradient));
+    form->addRow(tr("Background"), m_background);
+
+    m_backgroundColor1 = new QPushButton(box);
+    form->addRow(tr("Background color"), m_backgroundColor1);
+
+    m_backgroundColor2 = new QPushButton(box);
+    form->addRow(tr("Gradient end color"), m_backgroundColor2);
+
+    m_beautifyAlways = new QCheckBox(tr("Beautify every capture"), box);
+    form->addRow(QString(), m_beautifyAlways);
     boxLayout->addLayout(form);
 
     m_preview = new QLabel(box);
@@ -120,6 +141,34 @@ void WorkflowsConf::addEffectsGroup()
             this,
             &WorkflowsConf::onEffectChanged);
     connect(m_shadow, &QCheckBox::toggled, this, &WorkflowsConf::onEffectChanged);
+    connect(m_padding,
+            QOverload<int>::of(&QSpinBox::valueChanged),
+            this,
+            &WorkflowsConf::onEffectChanged);
+    connect(m_background,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            &WorkflowsConf::onEffectChanged);
+    connect(m_beautifyAlways,
+            &QCheckBox::toggled,
+            this,
+            &WorkflowsConf::onEffectChanged);
+    connect(m_backgroundColor1, &QPushButton::clicked, this, [this]() {
+        const QColor picked = QColorDialog::getColor(
+          m_backgroundColor1Value, this, tr("Background color"));
+        if (picked.isValid()) {
+            m_backgroundColor1Value = picked;
+            onEffectChanged();
+        }
+    });
+    connect(m_backgroundColor2, &QPushButton::clicked, this, [this]() {
+        const QColor picked = QColorDialog::getColor(
+          m_backgroundColor2Value, this, tr("Gradient end color"));
+        if (picked.isValid()) {
+            m_backgroundColor2Value = picked;
+            onEffectChanged();
+        }
+    });
     connect(m_borderColor, &QPushButton::clicked, this, [this]() {
         const QColor picked =
           QColorDialog::getColor(m_borderColorValue, this, tr("Border color"));
@@ -194,6 +243,11 @@ void WorkflowsConf::onEffectChanged()
     config.setEffectBorderColor(m_borderColorValue);
     config.setEffectCornerRadius(m_cornerRadius->value());
     config.setEffectShadow(m_shadow->isChecked());
+    config.setEffectPadding(m_padding->value());
+    config.setEffectBackground(m_background->currentData().toInt());
+    config.setEffectBackgroundColor1(m_backgroundColor1Value);
+    config.setEffectBackgroundColor2(m_backgroundColor2Value);
+    config.setBeautifyAlways(m_beautifyAlways->isChecked());
     updatePreview();
 }
 
@@ -202,6 +256,19 @@ void WorkflowsConf::updatePreview()
     m_borderColor->setText(m_borderColorValue.name());
     m_borderColor->setStyleSheet(
       QStringLiteral("background-color: %1;").arg(m_borderColorValue.name()));
+
+    for (auto [button, color] :
+         { std::pair{ m_backgroundColor1, m_backgroundColor1Value },
+           std::pair{ m_backgroundColor2, m_backgroundColor2Value } }) {
+        button->setText(color.name());
+        button->setStyleSheet(
+          QStringLiteral("background-color: %1;").arg(color.name()));
+    }
+    // The second color only matters for a gradient
+    m_backgroundColor2->setEnabled(m_background->currentData().toInt() ==
+                                   int(BackgroundMode::Gradient));
+    m_backgroundColor1->setEnabled(m_background->currentData().toInt() !=
+                                   int(BackgroundMode::None));
 
     // Small gradient stand-in for a capture
     QImage sample(96, 64, QImage::Format_ARGB32_Premultiplied);
@@ -217,8 +284,17 @@ void WorkflowsConf::updatePreview()
     settings.borderColor = m_borderColorValue;
     settings.cornerRadius = m_cornerRadius->value();
     settings.shadow = m_shadow->isChecked();
+    settings.paddingPx = m_padding->value();
+    settings.backgroundMode =
+      static_cast<BackgroundMode>(m_background->currentData().toInt());
+    settings.backgroundColor1 = m_backgroundColor1Value;
+    settings.backgroundColor2 = m_backgroundColor2Value;
+    // Large paddings would overflow the box, so fit the result into it
     m_preview->setPixmap(
-      QPixmap::fromImage(imageeffects::applyEffects(sample, settings)));
+      QPixmap::fromImage(imageeffects::applyEffects(sample, settings))
+        .scaled(m_preview->minimumSize(),
+                Qt::KeepAspectRatio,
+                Qt::SmoothTransformation));
 }
 
 void WorkflowsConf::onToggled(const QString& hotkey)
@@ -254,6 +330,12 @@ void WorkflowsConf::updateComponents()
     m_borderColorValue = config.effectBorderColor();
     m_cornerRadius->setValue(config.effectCornerRadius());
     m_shadow->setChecked(config.effectShadow());
+    m_padding->setValue(config.effectPadding());
+    m_background->setCurrentIndex(
+      std::max(0, m_background->findData(config.effectBackground())));
+    m_backgroundColor1Value = config.effectBackgroundColor1();
+    m_backgroundColor2Value = config.effectBackgroundColor2();
+    m_beautifyAlways->setChecked(config.beautifyAlways());
     for (auto it = m_recordShortcuts.begin(); it != m_recordShortcuts.end();
          ++it) {
         const QString sequence = config.shortcut(it.key());

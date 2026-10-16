@@ -17,6 +17,7 @@
 #include "tools/marker/markertool.h"
 #include "tools/move/movetool.h"
 #include "tools/pencil/penciltool.h"
+#include "tools/beautify/beautifytool.h"
 #include "tools/pin/pintool.h"
 #include "tools/pixelate/pixelatetool.h"
 #include "tools/rectangle/rectangletool.h"
@@ -68,6 +69,7 @@ CaptureTool* ToolFactory::CreateTool(CaptureTool::Type t, QObject* parent)
         if_TYPE_return_TOOL(TYPE_INVERT, InvertTool);
         if_TYPE_return_TOOL(TYPE_RULER, RulerTool);
         if_TYPE_return_TOOL(TYPE_ACCEPT, AcceptTool);
+        if_TYPE_return_TOOL(TYPE_BEAUTIFY, BeautifyTool);
         default:
             return nullptr;
     }

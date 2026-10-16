@@ -140,6 +140,91 @@ private slots:
         s.shadow = true;
         QVERIFY(imageeffects::needsAlpha(s));
     }
+
+    void paddingGrowsCanvasByTwicePad()
+    {
+        const QImage src = solid(40, 30, Qt::white);
+        EffectSettings s;
+        s.paddingPx = 20;
+        s.backgroundMode = BackgroundMode::Solid;
+        const QImage out = imageeffects::applyEffects(src, s);
+        QCOMPARE(out.size(), QSize(80, 70));
+        QCOMPARE(out.pixelColor(40, 35), QColor(Qt::white));
+    }
+
+    void paddingAddsToShadowMargins()
+    {
+        const QImage src = solid(40, 30, Qt::white);
+        EffectSettings s;
+        s.shadow = true;
+        const QImage shadowOnly = imageeffects::applyEffects(src, s);
+        s.paddingPx = 10;
+        s.backgroundMode = BackgroundMode::Solid;
+        const QImage out = imageeffects::applyEffects(src, s);
+        QCOMPARE(out.size(), shadowOnly.size() + QSize(20, 20));
+    }
+
+    void solidBackgroundFillsCorner()
+    {
+        const QImage src = solid(40, 30, Qt::white);
+        EffectSettings s;
+        s.paddingPx = 16;
+        s.cornerRadius = 8;
+        s.backgroundMode = BackgroundMode::Solid;
+        s.backgroundColor1 = QColor(139, 92, 246);
+        const QImage out = imageeffects::applyEffects(src, s);
+        QCOMPARE(out.pixelColor(0, 0), QColor(139, 92, 246));
+        QCOMPARE(out.pixelColor(out.width() - 1, out.height() - 1),
+                 QColor(139, 92, 246));
+        QCOMPARE(out.pixelColor(0, 0).alpha(), 255);
+    }
+
+    void gradientRunsDiagonally()
+    {
+        const QImage src = solid(10, 10, Qt::white);
+        EffectSettings s;
+        s.paddingPx = 100;
+        s.backgroundMode = BackgroundMode::Gradient;
+        s.backgroundColor1 = QColor(255, 0, 0);
+        s.backgroundColor2 = QColor(0, 0, 255);
+        const QImage out = imageeffects::applyEffects(src, s);
+        const QColor tl = out.pixelColor(0, 0);
+        const QColor br = out.pixelColor(out.width() - 1, out.height() - 1);
+        QVERIFY2(tl.red() > 240 && tl.blue() < 15, qPrintable(tl.name()));
+        QVERIFY2(br.blue() > 240 && br.red() < 15, qPrintable(br.name()));
+    }
+
+    void backgroundNoneKeepsPaddingTransparent()
+    {
+        const QImage src = solid(40, 30, Qt::white);
+        EffectSettings s;
+        s.paddingPx = 10;
+        const QImage out = imageeffects::applyEffects(src, s);
+        QCOMPARE(out.size(), QSize(60, 50));
+        QCOMPARE(out.pixelColor(0, 0).alpha(), 0);
+        QVERIFY(imageeffects::needsAlpha(s));
+    }
+
+    void paddingScalesWithDpr()
+    {
+        const QImage src = solid(40, 30, Qt::white, 2.0);
+        EffectSettings s;
+        s.paddingPx = 5;
+        s.backgroundMode = BackgroundMode::Solid;
+        const QImage out = imageeffects::applyEffects(src, s);
+        QCOMPARE(out.size(), QSize(60, 50));
+        QCOMPARE(out.devicePixelRatio(), 2.0);
+    }
+
+    void needsAlphaFalseWithBackground()
+    {
+        EffectSettings s;
+        s.cornerRadius = 8;
+        s.shadow = true;
+        QVERIFY(imageeffects::needsAlpha(s));
+        s.backgroundMode = BackgroundMode::Gradient;
+        QVERIFY(!imageeffects::needsAlpha(s));
+    }
 };
 
 QTEST_GUILESS_MAIN(TestImageEffects)

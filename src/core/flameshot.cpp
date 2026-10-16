@@ -632,16 +632,38 @@ void Flameshot::requestCapture(const CaptureRequest& request)
 
 namespace {
 
+// JPEG cannot hold transparency, so such captures are saved as PNG
+QString pngOverrideForAlpha(bool needsAlpha)
+{
+    if (!needsAlpha) {
+        return {};
+    }
+    const QString ext = ConfigHandler().saveAsFileExtension().toLower();
+    if (ext != QLatin1String("jpg") && ext != QLatin1String("jpeg")) {
+        return {};
+    }
+    AbstractLogger::info()
+      << QObject::tr("Effects need transparency, saving this capture as "
+                     "PNG instead of JPEG.");
+    return QStringLiteral("png");
+}
+
 // Real side effects of the after-capture actions
 class FlameshotActionSink : public ActionSink
 {
 public:
+    // effectsApplied: the capture already went through the effects (beautify),
+    // so the Apply Effects action must not run them a second time
     FlameshotActionSink(Flameshot* flameshot,
                         const CaptureRequest& req,
-                        const QRect& selection)
+                        const QRect& selection,
+                        bool effectsApplied,
+                        bool effectsNeedAlpha)
       : m_flameshot(flameshot)
       , m_req(req)
       , m_selection(selection)
+      , m_effectsApplied(effectsApplied)
+      , m_effectsNeedAlpha(effectsNeedAlpha)
     {}
 
     QString save(const QPixmap& pixmap) override
@@ -710,53 +732,38 @@ public:
 
     QPixmap applyEffects(const QPixmap& pixmap) override
     {
-        const EffectSettings settings = currentEffectSettings();
+        if (m_effectsApplied) {
+            return pixmap;
+        }
+        const EffectSettings settings = ConfigHandler().effectSettings();
         m_effectsNeedAlpha = imageeffects::needsAlpha(settings);
         return QPixmap::fromImage(
           imageeffects::applyEffects(pixmap.toImage(), settings));
     }
 
 private:
-    static EffectSettings currentEffectSettings()
-    {
-        ConfigHandler config;
-        EffectSettings settings;
-        settings.borderPx = config.effectBorderPx();
-        settings.borderColor = config.effectBorderColor();
-        settings.cornerRadius = config.effectCornerRadius();
-        settings.shadow = config.effectShadow();
-        return settings;
-    }
-
-    // JPEG cannot hold transparency, so such captures are saved as PNG
     QString saveExtensionOverride() const
     {
-        if (!m_effectsNeedAlpha) {
-            return {};
-        }
-        const QString ext = ConfigHandler().saveAsFileExtension().toLower();
-        if (ext != QLatin1String("jpg") && ext != QLatin1String("jpeg")) {
-            return {};
-        }
-        AbstractLogger::info()
-          << QObject::tr("Effects need transparency, saving this capture as "
-                         "PNG instead of JPEG.");
-        return QStringLiteral("png");
+        return pngOverrideForAlpha(m_effectsNeedAlpha);
     }
 
     Flameshot* m_flameshot;
     const CaptureRequest& m_req;
     QRect m_selection;
-    bool m_effectsNeedAlpha = false;
+    bool m_effectsApplied;
+    bool m_effectsNeedAlpha;
 };
 
 } // namespace
 
 void Flameshot::runWorkflow(const QPixmap& capture,
                             const QRect& selection,
-                            const CaptureRequest& req)
+                            const CaptureRequest& req,
+                            bool effectsApplied,
+                            bool effectsNeedAlpha)
 {
-    FlameshotActionSink sink(this, req, selection);
+    FlameshotActionSink sink(
+      this, req, selection, effectsApplied, effectsNeedAlpha);
     CaptureResult result;
     result.pixmap = capture;
     result.selection = selection;
@@ -773,7 +780,7 @@ void Flameshot::runWorkflow(const QPixmap& capture,
     }
 }
 
-void Flameshot::exportCapture(const QPixmap& capture,
+void Flameshot::exportCapture(const QPixmap& rawCapture,
                               QRect& selection,
                               const CaptureRequest& req)
 {
@@ -782,6 +789,17 @@ void Flameshot::exportCapture(const QPixmap& capture,
         // Area pick for a recording: nothing is exported as an image
         m_recording->areaPicked(req.capturedGlobalRect());
         return;
+    }
+    // Beautify replaces the capture for every task below
+    QPixmap capture = rawCapture;
+    const bool beautify =
+      (req.tasks() & CR::BEAUTIFY) || ConfigHandler().beautifyAlways();
+    bool needsAlpha = false;
+    if (beautify) {
+        const EffectSettings settings = ConfigHandler().effectSettings();
+        needsAlpha = imageeffects::needsAlpha(settings);
+        capture = QPixmap::fromImage(
+          imageeffects::applyEffects(rawCapture.toImage(), settings));
     }
     int tasks = req.tasks(), mode = req.captureMode();
     QString path = req.path();
@@ -805,7 +823,7 @@ void Flameshot::exportCapture(const QPixmap& capture,
     const bool hasWorkflow = !req.workflow().isEmpty();
     if (hasWorkflow) {
         // The hotkey's configured actions replace the SAVE and COPY tasks
-        runWorkflow(capture, selection, req);
+        runWorkflow(capture, selection, req, beautify, needsAlpha);
     }
 
     if ((tasks & CR::SAVE) && !hasWorkflow) {
@@ -817,7 +835,8 @@ void Flameshot::exportCapture(const QPixmap& capture,
                                  path,
                                  QString(),
                                  &savedPath,
-                                 req.overwriteExisting())) {
+                                 req.overwriteExisting(),
+                                 pngOverrideForAlpha(needsAlpha))) {
                 emit captureSaved(
                   savedPath, capture, selection, req.capturedGlobalRect());
                 // Only the editor window sets an edit image

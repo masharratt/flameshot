@@ -2,6 +2,7 @@
 
 #include "imageeffects.h"
 
+#include <QLinearGradient>
 #include <QPainter>
 #include <QPainterPath>
 #include <QVector>
@@ -167,6 +168,39 @@ QImage dropShadow(const QImage& src,
     return out;
 }
 
+QImage addBackground(const QImage& src,
+                     int padding,
+                     BackgroundMode mode,
+                     const QColor& color1,
+                     const QColor& color2)
+{
+    const qreal dpr = src.devicePixelRatio();
+    const int pad = std::max(0, scaled(padding, dpr));
+    if (src.isNull() || (pad == 0 && mode == BackgroundMode::None)) {
+        return src;
+    }
+    const bool opaque = mode != BackgroundMode::None;
+    QImage out(src.width() + 2 * pad,
+               src.height() + 2 * pad,
+               opaque ? QImage::Format_RGB32
+                      : QImage::Format_ARGB32_Premultiplied);
+    if (mode == BackgroundMode::Gradient) {
+        QPainter p(&out);
+        QLinearGradient gradient(0, 0, out.width(), out.height());
+        gradient.setColorAt(0, color1);
+        gradient.setColorAt(1, color2);
+        p.fillRect(out.rect(), gradient);
+    } else {
+        out.fill(mode == BackgroundMode::Solid ? color1 : QColor(Qt::transparent));
+    }
+    {
+        QPainter p(&out);
+        p.drawImage(pad, pad, physical(src));
+    }
+    out.setDevicePixelRatio(dpr);
+    return out;
+}
+
 QImage applyEffects(const QImage& src, const EffectSettings& settings)
 {
     QImage out = src;
@@ -180,12 +214,20 @@ QImage applyEffects(const QImage& src, const EffectSettings& settings)
         out = dropShadow(
           out, settings.shadowBlur, settings.shadowOffset, settings.shadowColor);
     }
-    return out;
+    return addBackground(out,
+                         settings.paddingPx,
+                         settings.backgroundMode,
+                         settings.backgroundColor1,
+                         settings.backgroundColor2);
 }
 
 bool needsAlpha(const EffectSettings& settings)
 {
-    return settings.cornerRadius > 0 || settings.shadow;
+    if (settings.backgroundMode != BackgroundMode::None) {
+        return false;
+    }
+    return settings.cornerRadius > 0 || settings.shadow ||
+           settings.paddingPx > 0;
 }
 
 } // namespace imageeffects

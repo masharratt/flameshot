@@ -27,6 +27,7 @@ public:
         PIN = 16,
         UPLOAD = 32,
         ACCEPT_ON_SELECT = 64,
+        BEAUTIFY = 128,
     };
 
     // Set on requests that only pick an area to record. No image is saved.

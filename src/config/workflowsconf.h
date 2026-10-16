@@ -10,6 +10,7 @@
 #include <QColor>
 
 class QCheckBox;
+class QComboBox;
 class QLabel;
 class QPushButton;
 class QSpinBox;
@@ -45,6 +46,11 @@ private:
     QPushButton* m_borderColor = nullptr;
     QSpinBox* m_cornerRadius = nullptr;
     QCheckBox* m_shadow = nullptr;
+    QSpinBox* m_padding = nullptr;
+    QComboBox* m_background = nullptr;
+    QPushButton* m_backgroundColor1 = nullptr;
+    QPushButton* m_backgroundColor2 = nullptr;
+    QCheckBox* m_beautifyAlways = nullptr;
     QLabel* m_preview = nullptr;
 
     // Only created when screen recording is supported
@@ -52,4 +58,6 @@ private:
     QSpinBox* m_gifFps = nullptr;
     QSpinBox* m_gifMaxWidth = nullptr;
     QColor m_borderColorValue;
+    QColor m_backgroundColor1Value;
+    QColor m_backgroundColor2Value;
 };

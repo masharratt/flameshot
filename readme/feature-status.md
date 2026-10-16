@@ -1,6 +1,6 @@
 # Feature Status (masharratt/flameshot fork)
 
-**Last Updated:** 2026-10-14 (after-edit thumbnail confirmed working in the installed app)
+**Last Updated:** 2026-10-16 (added Beautify background, padding and toolbar button)
 
 | Token | Meaning |
 |-------|---------|
@@ -22,6 +22,7 @@ Plan: `planning/PLAN_sharex_fork.md` (local, not committed).
 | Capture history | beta | Every save is logged to history.jsonl; a thumbnail window (tray item or Cmd+Shift+Y) offers Open, Edit, Copy, Show in Finder and Remove. Option `captureHistoryMax`, default 500. | Capture-first workflow | Not yet checked by hand. Editing an image larger than the screen saves a numbered copy. |
 | Per-hotkey after-capture actions | beta | TAKE_SCREENSHOT and CAPTURE_AND_EDIT each run a configurable action list (save, copy image, copy path, open editor, pin, effects, toast) set on the Workflows tab. Hotkeys re-register live when changed. | Capture-first workflow | Not yet checked by hand. |
 | Image effects | beta | Border, rounded corners and drop shadow applied by the Apply Effects action, configured with a live preview on the Workflows tab. | Per-hotkey actions | Not yet checked by hand. Effects needing transparency save as PNG only on the workflow save path. |
+| Beautify | dev | Toolbar button and "Beautify every capture" option add a gradient or solid background, padding and shadow to the exported image. Configured on the Workflows tab. | Image effects | Not yet checked by hand. Save dialog path ignores the JPEG to PNG switch. |
 | Ruler tool | beta | Editor tool that draws a measured line labelled with length and width x height in physical pixels. | Tool system | Not yet checked by hand in the running app. |
 | GIF / MP4 recording | dev | RECORD_MP4 and RECORD_GIF hotkeys (and tray items) pick an area, record it with ScreenCaptureKit, and save MP4 or GIF with a history entry and toast. Options `gifFps`, `gifMaxWidth` on the Workflows tab. | macOS 15+, ScreenCaptureKit, AVFoundation, ImageIO | GIF verified by hand once; MP4 not yet. macOS 15+ only, hidden elsewhere. No audio. |
 | Expand canvas | beta | Editor toolbar button that adds 40 pt of white space on every side so you can draw outside the image; drawings move with the image and Cmd+Z undoes it. | Windowed editor | Window grows but does not shrink on undo. Shortcut E. |
