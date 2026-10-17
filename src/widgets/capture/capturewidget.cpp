@@ -34,6 +34,7 @@
 #include "widgets/panel/utilitypanel.h"
 
 #include <QApplication>
+#include <algorithm>
 #include <QCheckBox>
 #include <QCoreApplication>
 #include <QDateTime>
@@ -348,6 +349,13 @@ CaptureWidget::~CaptureWidget()
     }
 #endif
     if (m_captureDone) {
+        // Annotated captures keep a re-editable project in the history
+        if (m_captureToolObjects.size() > 0) {
+            if (CaptureProject project = currentProject();
+                !project.objects.isEmpty()) {
+                m_context.request.setProject(project);
+            }
+        }
         if (!m_editMode) {
             auto lastRegion = m_selection->geometry();
             const qreal scale = m_context.screenshot.devicePixelRatio();
@@ -2427,6 +2435,45 @@ void CaptureWidget::initEditCanvas(const QPixmap& image)
                                   image.size());
     m_editImageRectLogical = plan.imageRectLogical;
     setFixedSize(plan.canvasLogical);
+}
+
+CaptureProject CaptureWidget::currentProject()
+{
+    const QRect device =
+      m_editMode ? m_editImageRectDevice : m_context.selection;
+    const QPoint origin = m_editMode
+                            ? m_editImageRectLogical.topLeft()
+                            : m_selection->geometry().normalized().topLeft();
+    const QPixmap& source = m_context.origScreenshot;
+    CaptureProject project;
+    project.base =
+      (device.isNull() ? source : source.copy(device)).toImage();
+    project.base.setDevicePixelRatio(source.devicePixelRatio());
+    project.objects = captureproject::encodeObjects(
+      m_captureToolObjects.captureToolObjects(), -origin);
+    return project;
+}
+
+QStringList CaptureWidget::restoreObjects(const QJsonArray& objects)
+{
+    QStringList warnings;
+    if (!m_editMode) {
+        return warnings;
+    }
+    const QList<CaptureTool*> tools = captureproject::decodeObjects(
+      objects, m_editImageRectLogical.topLeft(), this, &warnings);
+    for (CaptureTool* tool : tools) {
+        // append() stores its own copy, like a newly drawn object
+        m_captureToolObjects.append(tool);
+        if (tool->type() == CaptureTool::TYPE_CIRCLECOUNT) {
+            m_context.circleCount =
+              std::max(m_context.circleCount, tool->count() + 1);
+        }
+        delete tool;
+    }
+    drawToolsData(false);
+    updateLayersPanel();
+    return warnings;
 }
 
 void CaptureWidget::expandEditCanvas(int stepLogical)

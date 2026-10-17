@@ -4,6 +4,7 @@
 #include "texttool.h"
 #include "tools/text/textconfig.h"
 #include "tools/text/textwidget.h"
+#include "tools/toolstate.h"
 #include "utils/confighandler.h"
 
 #define BASE_POINT_SIZE 8
@@ -360,4 +361,40 @@ void TextTool::setEditMode(bool editMode)
 bool TextTool::isChanged()
 {
     return QString::compare(m_text, m_textOld, Qt::CaseInsensitive) != 0;
+}
+
+void TextTool::saveState(QJsonObject& state) const
+{
+    CaptureTool::saveState(state);
+    state.insert(QStringLiteral("text"), m_text);
+    state.insert(QStringLiteral("font"), m_font.toString());
+    state.insert(QStringLiteral("alignment"), static_cast<int>(m_alignment));
+    state.insert(QStringLiteral("size"), m_size);
+    state.insert(QStringLiteral("color"), toolstate::fromColor(m_color));
+    state.insert(QStringLiteral("rect"), toolstate::fromRect(m_textArea));
+}
+
+bool TextTool::loadState(const QJsonObject& state)
+{
+    const QJsonValue text = state.value(QStringLiteral("text"));
+    const QJsonValue font = state.value(QStringLiteral("font"));
+    int alignment = 0;
+    QFont loadedFont;
+    if (!CaptureTool::loadState(state) || !text.isString() ||
+        text.toString().isEmpty() || !font.isString() ||
+        !loadedFont.fromString(font.toString()) ||
+        !toolstate::toInt(state.value(QStringLiteral("alignment")),
+                          0,
+                          Qt::AlignHorizontal_Mask,
+                          alignment) ||
+        !toolstate::toInt(
+          state.value(QStringLiteral("size")), 0, 10000, m_size) ||
+        !toolstate::toColor(state.value(QStringLiteral("color")), m_color) ||
+        !toolstate::toRect(state.value(QStringLiteral("rect")), m_textArea)) {
+        return false;
+    }
+    m_text = text.toString();
+    m_font = loadedFont;
+    m_alignment = static_cast<Qt::AlignmentFlag>(alignment);
+    return true;
 }

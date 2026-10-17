@@ -14,18 +14,26 @@ struct HistoryEntry
     QString path;
     QSize size;
     QString kind;
+    // Re-editable project saved with this capture (base image plus
+    // annotations); empty when there is none
+    QString project;
 
     bool exists() const;
 };
 
 // Append-only JSON Lines index of saved captures. Pure store: QtCore and
-// QtGui only. It never deletes image files.
+// QtGui only. It never deletes image files. Project files are its own: those
+// inside projectDir() are deleted together with their entries.
 class CaptureHistory
 {
 public:
     explicit CaptureHistory(QString indexFile);
 
     static QString defaultIndexPath();
+    // Where the projects of this history live, next to the index
+    QString projectDir() const;
+    // The project of the newest save of imagePath, when that file exists
+    QString projectFor(const QString& imagePath) const;
 
     bool append(const HistoryEntry& entry);
     // Newest first
@@ -38,6 +46,7 @@ public:
 private:
     QList<HistoryEntry> load() const; // oldest first, as stored
     bool rewrite(const QList<HistoryEntry>& oldestFirst) const;
+    void deleteProjects(const QList<HistoryEntry>& dropped) const;
 
     QString m_indexFile;
     mutable int m_skipped = 0;

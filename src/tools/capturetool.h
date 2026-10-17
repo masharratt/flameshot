@@ -8,6 +8,7 @@
 #include "utils/pathinfo.h"
 
 #include <QIcon>
+#include <QJsonObject>
 #include <QPainter>
 
 class CaptureTool : public QObject
@@ -146,6 +147,23 @@ public:
 
     // return true if object was change after editMode
     virtual bool isChanged() { return true; };
+
+    // Re-editable projects (utils/captureproject). A tool that draws an
+    // object returns true from isSaveable and saves, in saveState, everything
+    // its process() reads; loadState restores it and returns false when a
+    // field is missing or malformed. Overrides call the parent first. Tools
+    // that only act (Save, Copy, Undo...) are not saveable.
+    virtual bool isSaveable() const { return false; }
+    virtual void saveState(QJsonObject& state) const
+    {
+        state.insert(QStringLiteral("count"), static_cast<int>(m_count));
+    }
+    virtual bool loadState(const QJsonObject& state)
+    {
+        const int count = state.value(QStringLiteral("count")).toInt(0);
+        m_count = count > 0 ? static_cast<unsigned int>(count) : 0;
+        return true;
+    }
 
     // Counter for all object types (currently is used for the CircleCounter
     // only)

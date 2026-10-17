@@ -25,6 +25,7 @@ public:
     void paintMousePreview(QPainter& painter,
                            const CaptureContext& context) override;
     bool handleMouseWheelEvent(int, bool, CaptureContext& ctx) override;
+    bool loadState(const QJsonObject& state) override;
 
 protected:
     CaptureTool::Type type() const override;

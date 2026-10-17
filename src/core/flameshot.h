@@ -104,6 +104,13 @@ public slots:
     // file at path. capture is in device pixels and carries its own device
     // pixel ratio. Editor windows are independent of the capture overlay.
     void editSavedCapture(const QString& path, const QPixmap& capture);
+    // Reopen a capture from its project: the base image with every
+    // annotation still editable. Saving overwrites the file at path.
+    void editProject(const QString& path, const CaptureProject& project);
+    // Edit again: opens the history's project for path when there is one;
+    // when there is none, or it cannot be read (the user is told why), opens
+    // the flat image like editSavedCapture.
+    void editCaptureAgain(const QString& path, const QPixmap& capture);
     // Hide every visible editor window, keeping its edits, and remember them
     // so showEditorWindows() can bring them back
     void hideEditorWindows();
@@ -118,6 +125,10 @@ public slots:
 private:
     Flameshot();
     bool resolveAnyConfigErrors();
+    void openEditorWindow(EditorWindow* editor);
+    // Writes the pending project into the history's project folder; the
+    // file path, or empty when there is nothing to write or it failed
+    QString storePendingProject(const QString& projectDir) const;
     void runWorkflow(const QPixmap& capture,
                      const QRect& selection,
                      const CaptureRequest& req,
@@ -136,6 +147,9 @@ private:
     QPointer<ConfigWindow> m_configWindow;
     RecordingController* m_recording = nullptr;
     CountdownStateMachine m_countdown;
+    // Project of the capture being exported; set only during exportCapture
+    // so every save it makes records it in the history
+    CaptureProject m_pendingProject;
 
 #if defined(Q_OS_MACOS)
 public:

@@ -53,6 +53,16 @@ QPixmap CaptureRequest::editImage() const
     return m_editImage;
 }
 
+CaptureProject CaptureRequest::project() const
+{
+    return m_project;
+}
+
+void CaptureRequest::setProject(const CaptureProject& project)
+{
+    m_project = project;
+}
+
 bool CaptureRequest::overwriteExisting() const
 {
     return m_overwriteExisting;

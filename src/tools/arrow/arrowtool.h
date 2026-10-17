@@ -20,6 +20,8 @@ public:
     bool supportsBend() const override { return true; }
     QRect boundingRect() const override;
     QWidget* configurationWidget() override;
+    void saveState(QJsonObject& state) const override;
+    bool loadState(const QJsonObject& state) override;
 
     CaptureTool* copy(QObject* parent = nullptr) override;
     void process(QPainter& painter, const QPixmap& pixmap) override;

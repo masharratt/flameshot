@@ -2,6 +2,8 @@
 
 #include "editorwindow.h"
 #include "core/capturerequest.h"
+#include "core/flameshot.h"
+#include "utils/captureproject.h"
 #include "utils/globalvalues.h"
 #include "utils/colorutils.h"
 #include "utils/confighandler.h"
@@ -15,7 +17,10 @@
 
 #include <QCursor>
 #include <QEvent>
+#include <QFileDialog>
 #include <QFileInfo>
+#include <QMessageBox>
+#include <QTimer>
 #include <QAbstractSpinBox>
 #include <QApplication>
 #include <QGuiApplication>
@@ -36,9 +41,12 @@ constexpr int kToolbarPad = 6;
 constexpr int kToolbarSpacing = 4;
 } // namespace
 
-EditorWindow::EditorWindow(const QString& path, const QPixmap& image)
+EditorWindow::EditorWindow(const QString& path,
+                           const QPixmap& image,
+                           const QJsonArray& objects)
   : QWidget(nullptr, Qt::Window | Qt::WindowMinMaxButtonsHint)
   , m_image(image)
+  , m_path(path)
 {
     setAttribute(Qt::WA_DeleteOnClose);
     setAttribute(Qt::WA_QuitOnClose, false);
@@ -65,6 +73,9 @@ EditorWindow::EditorWindow(const QString& path, const QPixmap& image)
                      "#2b2b2b; }"));
     m_capture = new CaptureWidget(req, false);
     scroll->setWidget(m_capture);
+    if (!objects.isEmpty()) {
+        m_restoreWarnings = m_capture->restoreObjects(objects);
+    }
 
     auto* layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
@@ -81,7 +92,7 @@ EditorWindow::EditorWindow(const QString& path, const QPixmap& image)
         b->show();
     }
     addSelectButton();
-    addExpandButton();
+    addTrailingButtons();
     addSettingsBar();
     m_toolbar->setFixedHeight(toolbarHeightFor(width()));
     layoutToolbar();
@@ -101,6 +112,19 @@ EditorWindow::EditorWindow(const QString& path, const QPixmap& image)
             m_capture->expandEditCanvas();
         }
     });
+    // Cmd+Shift+S and Cmd+O on macOS
+    auto* saveProjectShortcut = new QShortcut(
+      QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_S), this);
+    connect(saveProjectShortcut,
+            &QShortcut::activated,
+            this,
+            &EditorWindow::saveProject);
+    auto* openProjectShortcut =
+      new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_O), this);
+    connect(openProjectShortcut,
+            &QShortcut::activated,
+            this,
+            &EditorWindow::openProject);
 
     // Esc, Save and the other finishing tools close the CaptureWidget
     connect(m_capture, &QObject::destroyed, this, [this]() { close(); });
@@ -157,31 +181,106 @@ void EditorWindow::setSelectChecked(bool checked)
 }
 
 // A button in the strip after the tool buttons. It is not a capture tool: it
-// calls straight into the edit canvas, so the overlay never sees it.
-void EditorWindow::addExpandButton()
+// calls straight into the editor, so the overlay never sees it.
+CaptureButton* EditorWindow::addTrailingButton(
+  const QString& iconName,
+  const QString& toolTip,
+  const std::function<void()>& handler)
 {
     const QColor ui = ConfigHandler().uiColor();
-    m_expandButton = new CaptureButton(m_toolbar);
-    m_expandButton->setColor(ui);
-    m_expandButton->setStyleSheet(m_expandButton->styleSheet() +
-                                  QStringLiteral(" CaptureButton { padding: "
-                                                 "0; }"));
+    auto* button = new CaptureButton(m_toolbar);
+    button->setColor(ui);
+    button->setStyleSheet(button->styleSheet() +
+                          QStringLiteral(" CaptureButton { padding: 0; }"));
     const int size = GlobalValues::buttonBaseSize();
-    m_expandButton->setFixedSize(size, size);
-    m_expandButton->setMask(
+    button->setFixedSize(size, size);
+    button->setMask(
       QRegion(QRect(-1, -1, size + 2, size + 2), QRegion::Ellipse));
     const QString iconDir = ColorUtils::colorIsDark(ui)
                               ? PathInfo::whiteIconPath()
                               : PathInfo::blackIconPath();
-    m_expandButton->setIcon(QIcon(iconDir + QStringLiteral("expand-canvas.svg")));
-    m_expandButton->setIconSize(QSize(size, size) * 0.6);
-    m_expandButton->setToolTip(tr("Expand canvas (E)"));
-    connect(m_expandButton, &QPushButton::clicked, this, [this]() {
-        if (m_capture) {
-            m_capture->expandEditCanvas();
-        }
-    });
-    m_expandButton->show();
+    button->setIcon(QIcon(iconDir + iconName));
+    button->setIconSize(QSize(size, size) * 0.6);
+    button->setToolTip(toolTip);
+    connect(button, &QPushButton::clicked, this, handler);
+    button->show();
+    m_trailingButtons.append(button);
+    return button;
+}
+
+void EditorWindow::addTrailingButtons()
+{
+    addTrailingButton(
+      QStringLiteral("expand-canvas.svg"), tr("Expand canvas (E)"), [this]() {
+          if (m_capture) {
+              m_capture->expandEditCanvas();
+          }
+      });
+    addTrailingButton(QStringLiteral("project-save.svg"),
+                      tr("Save project, annotations stay editable (%1)")
+                        .arg(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_S)
+                               .toString(QKeySequence::NativeText)),
+                      [this]() { saveProject(); });
+    addTrailingButton(QStringLiteral("project-open.svg"),
+                      tr("Open project (%1)")
+                        .arg(QKeySequence(Qt::CTRL | Qt::Key_O)
+                               .toString(QKeySequence::NativeText)),
+                      [this]() { openProject(); });
+}
+
+// Writes the base image and the annotations to a .fsproj file. A text box
+// still being typed in is committed first so it is included.
+void EditorWindow::saveProject()
+{
+    if (!m_capture) {
+        return;
+    }
+    m_capture->commitCurrentTool();
+    const QString suffix = captureproject::fileSuffix();
+    QString suggested = QFileInfo(m_path).absolutePath() + QLatin1Char('/') +
+                        QFileInfo(m_path).completeBaseName() +
+                        QLatin1Char('.') + suffix;
+    QString path = QFileDialog::getSaveFileName(
+      this,
+      tr("Save Project"),
+      suggested,
+      tr("Flameshot project (*.%1)").arg(suffix));
+    if (path.isEmpty()) {
+        return;
+    }
+    if (QFileInfo(path).suffix().isEmpty()) {
+        path += QLatin1Char('.') + suffix;
+    }
+    QString error;
+    if (!captureproject::save(path, m_capture->currentProject(), &error)) {
+        QMessageBox::warning(this, tr("Save Project"), error);
+    }
+}
+
+// Opens a .fsproj file in a new editor window. Saving there writes a PNG
+// next to the project file.
+void EditorWindow::openProject()
+{
+    const QString suffix = captureproject::fileSuffix();
+    const QString path = QFileDialog::getOpenFileName(
+      this,
+      tr("Open Project"),
+      QFileInfo(m_path).absolutePath(),
+      tr("Flameshot project (*.%1)").arg(suffix));
+    if (path.isEmpty()) {
+        return;
+    }
+    CaptureProject project;
+    QString error;
+    if (!captureproject::load(path, project, &error)) {
+        QMessageBox::warning(this, tr("Open Project"), error);
+        return;
+    }
+    const QFileInfo info(path);
+    Flameshot::instance()->editProject(
+      info.absolutePath() + QLatin1Char('/') + info.completeBaseName() +
+        QStringLiteral(".png"),
+      project);
 }
 
 // Colour and size row under the tool buttons. Edits go to the CaptureWidget
@@ -255,7 +354,7 @@ int EditorWindow::buttonRowsHeightFor(int width) const
 int EditorWindow::stripCount() const
 {
     return m_buttons.size() + (m_selectButton ? 1 : 0) +
-           (m_expandButton ? 1 : 0);
+           m_trailingButtons.size();
 }
 
 // One row of buttons that wraps to further rows when the window is narrow
@@ -277,8 +376,8 @@ void EditorWindow::layoutToolbar()
     for (CaptureToolButton* b : m_buttons) {
         place(b);
     }
-    if (m_expandButton) {
-        place(m_expandButton);
+    for (CaptureButton* b : m_trailingButtons) {
+        place(b);
     }
     if (m_settingsBar) {
         const int y = buttonRowsHeightFor(width());
@@ -366,5 +465,16 @@ void EditorWindow::present()
     activateWindow();
     if (m_capture) {
         m_capture->setFocus();
+    }
+    if (!m_restoreWarnings.isEmpty()) {
+        const QStringList warnings = m_restoreWarnings;
+        m_restoreWarnings.clear();
+        QTimer::singleShot(0, this, [this, warnings]() {
+            QMessageBox::warning(
+              this,
+              tr("Edit Again"),
+              tr("Some annotations could not be restored:\n%1")
+                .arg(warnings.join(QLatin1Char('\n'))));
+        });
     }
 }

@@ -73,10 +73,14 @@ target_sources(
           abstracttwopointtool.cpp
           curvemath.cpp
           capturecontext.cpp
+          drawabletools.cpp
           toolfactory.cpp
+          toolstate.cpp
           abstractactiontool.h
           abstractpathtool.h
           abstracttwopointtool.h
           curvemath.h
           capturetool.h
-          toolfactory.h)
+          drawabletools.h
+          toolfactory.h
+          toolstate.h)

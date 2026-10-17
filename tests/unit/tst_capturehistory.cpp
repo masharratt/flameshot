@@ -3,6 +3,8 @@
 #include "utils/capturehistory.h"
 
 #include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
 #include <QFile>
 #include <QTemporaryDir>
 #include <QTimeZone>
@@ -163,6 +165,95 @@ private slots:
         img.close();
         QVERIFY(entry(p, 1).exists());
         QVERIFY(!entry(dir.filePath("nope.png"), 1).exists());
+    }
+
+    // Re-editable projects: an entry may name its project file, which the
+    // history owns (it lives in projectDir) and deletes with the entry
+    static QString touch(const QString& path)
+    {
+        QDir().mkpath(QFileInfo(path).absolutePath());
+        QFile f(path);
+        if (f.open(QIODevice::WriteOnly)) {
+            f.write("p");
+        }
+        return path;
+    }
+
+    void projectPathRoundTrip()
+    {
+        QTemporaryDir dir;
+        const QString index = dir.filePath("history.jsonl");
+        CaptureHistory h(index);
+        QCOMPARE(h.projectDir(), dir.filePath("projects"));
+        HistoryEntry e = entry("/tmp/a.png", 1000);
+        e.project = h.projectDir() + "/a.fsproj";
+        QVERIFY(h.append(e));
+        QVERIFY(h.append(entry("/tmp/b.png", 2000)));
+        CaptureHistory reloaded(index);
+        const auto list = reloaded.entries();
+        QCOMPARE(list.size(), 2);
+        QCOMPARE(list[1].project, e.project);
+        QVERIFY(list[0].project.isEmpty());
+    }
+
+    void projectForPrefersNewestExistingProject()
+    {
+        QTemporaryDir dir;
+        CaptureHistory h(dir.filePath("history.jsonl"));
+        HistoryEntry older = entry("/tmp/a.png", 1000);
+        older.project = touch(h.projectDir() + "/old.fsproj");
+        HistoryEntry newer = entry("/tmp/a.png", 2000);
+        newer.project = touch(h.projectDir() + "/new.fsproj");
+        QVERIFY(h.append(older));
+        QVERIFY(h.append(newer));
+        QCOMPARE(h.projectFor("/tmp/a.png"), newer.project);
+        QFile::remove(newer.project);
+        // A newer save without a project file (flattened) has none either
+        QVERIFY(h.projectFor("/tmp/a.png").isEmpty());
+        QVERIFY(h.projectFor("/tmp/other.png").isEmpty());
+    }
+
+    void removeDeletesOwnedProjectsOnly()
+    {
+        QTemporaryDir dir;
+        CaptureHistory h(dir.filePath("history.jsonl"));
+        HistoryEntry a = entry(touch(dir.filePath("a.png")), 1000);
+        a.project = touch(h.projectDir() + "/a.fsproj");
+        HistoryEntry a2 = entry(a.path, 1500);
+        a2.project = touch(h.projectDir() + "/a2.fsproj");
+        // A path outside projectDir is never deleted
+        HistoryEntry b = entry(touch(dir.filePath("b.png")), 2000);
+        b.project = touch(dir.filePath("elsewhere.fsproj"));
+        QVERIFY(h.append(a));
+        QVERIFY(h.append(a2));
+        QVERIFY(h.append(b));
+        QVERIFY(h.remove(a.path));
+        QVERIFY(h.remove(b.path));
+        QVERIFY(!QFile::exists(a.project));
+        QVERIFY(!QFile::exists(a2.project));
+        QVERIFY(QFile::exists(b.project));
+        QVERIFY(QFile::exists(a.path));
+        QVERIFY(QFile::exists(b.path));
+    }
+
+    void trimDeletesProjectsOfDroppedEntries()
+    {
+        QTemporaryDir dir;
+        CaptureHistory h(dir.filePath("history.jsonl"));
+        QStringList projects;
+        for (int i = 0; i < 4; ++i) {
+            HistoryEntry e =
+              entry(dir.filePath(QStringLiteral("img%1.png").arg(i)), 1000 + i);
+            e.project =
+              touch(h.projectDir() + QStringLiteral("/p%1.fsproj").arg(i));
+            projects << e.project;
+            QVERIFY(h.append(e));
+        }
+        h.trimTo(2);
+        QVERIFY(!QFile::exists(projects[0]));
+        QVERIFY(!QFile::exists(projects[1]));
+        QVERIFY(QFile::exists(projects[2]));
+        QVERIFY(QFile::exists(projects[3]));
     }
 
     void unicodePathRoundTrip()

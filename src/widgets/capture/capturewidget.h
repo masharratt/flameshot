@@ -13,6 +13,7 @@
 
 #include "tools/capturecontext.h"
 #include "tools/capturetool.h"
+#include "utils/captureproject.h"
 #include "utils/confighandler.h"
 #include "platform/windowlist.h"
 #include "widgets/capture/buttonhandler.h"
@@ -118,6 +119,13 @@ public:
     QColor drawColor() const;
     int toolSize() const;
     QWidget* sidePanelToggle() const;
+
+    // Re-editable project of what is on screen now: the base image (no
+    // annotations, no effects) and the committed annotations relative to it
+    CaptureProject currentProject();
+    // Windowed editor: adds saved annotations over the image, still
+    // movable and editable. Returns one message per skipped entry.
+    QStringList restoreObjects(const QJsonArray& objects);
 
     // Windowed editor: add white space on every edge, undoable. Does nothing
     // outside edit mode.

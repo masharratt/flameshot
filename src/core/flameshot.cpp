@@ -81,6 +81,7 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include <QBuffer>
 #include <QDebug>
 #include <QDesktopServices>
+#include <QDir>
 #include <QFile>
 #include <QMessageBox>
 #include <QPainter>
@@ -88,7 +89,9 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include <QStandardPaths>
 #include <QThread>
 #include <QTimer>
+#include <QScopeGuard>
 #include <QUrl>
+#include <QUuid>
 #include <QVersionNumber>
 
 #if defined(Q_OS_MACOS)
@@ -106,13 +109,14 @@ Flameshot::Flameshot()
     connect(this,
             &Flameshot::captureSaved,
             this,
-            [](const QString& path, const QPixmap& capture) {
+            [this](const QString& path, const QPixmap& capture) {
                 CaptureHistory history(CaptureHistory::defaultIndexPath());
                 HistoryEntry entry;
                 entry.timestamp = QDateTime::currentDateTimeUtc();
                 entry.path = path;
                 entry.size = capture.size();
                 entry.kind = QStringLiteral("image");
+                entry.project = storePendingProject(history.projectDir());
                 if (history.append(entry)) {
                     history.trimTo(ConfigHandler().captureHistoryMax());
                 }
@@ -826,6 +830,9 @@ void Flameshot::exportCapture(const QPixmap& rawCapture,
                               const CaptureRequest& req)
 {
     using CR = CaptureRequest;
+    m_pendingProject = req.project();
+    const auto clearProject =
+      qScopeGuard([this]() { m_pendingProject = CaptureProject(); });
     if (req.recordMode() != CR::RecordNone) {
         // Area pick for a recording: nothing is exported as an image
         m_recording->areaPicked(req.capturedGlobalRect());
@@ -935,11 +942,67 @@ void Flameshot::exportCapture(const QPixmap& rawCapture,
     }
 }
 
+QString Flameshot::storePendingProject(const QString& projectDir) const
+{
+    if (m_pendingProject.isEmpty()) {
+        return {};
+    }
+    QDir().mkpath(projectDir);
+    const QString path =
+      projectDir + QLatin1Char('/') +
+      QDateTime::currentDateTimeUtc().toString(
+        QStringLiteral("yyyyMMdd-HHmmss-zzz")) +
+      QLatin1Char('-') +
+      QUuid::createUuid().toString(QUuid::WithoutBraces).left(8) +
+      QLatin1Char('.') + captureproject::fileSuffix();
+    // cfn: synchronous PNG encode on the UI thread after each annotated save,
+    // move to a worker thread if large captures make the thumbnail lag
+    QString error;
+    if (!captureproject::save(path, m_pendingProject, &error)) {
+        AbstractLogger::warning(AbstractLogger::Stderr)
+          << tr("Could not keep this capture editable: %1").arg(error);
+        return {};
+    }
+    return path;
+}
+
 void Flameshot::editSavedCapture(const QString& path, const QPixmap& capture)
+{
+    openEditorWindow(new EditorWindow(path, capture));
+}
+
+void Flameshot::editProject(const QString& path, const CaptureProject& project)
+{
+    QPixmap image = QPixmap::fromImage(project.base);
+    image.setDevicePixelRatio(project.base.devicePixelRatio());
+    openEditorWindow(new EditorWindow(path, image, project.objects));
+}
+
+void Flameshot::editCaptureAgain(const QString& path, const QPixmap& capture)
+{
+    const QString projectPath =
+      CaptureHistory(CaptureHistory::defaultIndexPath()).projectFor(path);
+    if (!projectPath.isEmpty()) {
+        CaptureProject project;
+        QString error;
+        if (captureproject::load(projectPath, project, &error)) {
+            editProject(path, project);
+            return;
+        }
+        QMessageBox::warning(
+          nullptr,
+          tr("Edit Again"),
+          tr("The annotations of this capture could not be restored, so it "
+             "opens as a flat image.\n\n%1")
+            .arg(error));
+    }
+    editSavedCapture(path, capture);
+}
+
+void Flameshot::openEditorWindow(EditorWindow* editor)
 {
     // A new Edit brings back editors hidden when the app was deactivated
     showEditorWindows();
-    auto* editor = new EditorWindow(path, capture);
     m_editorWindows.append(editor);
     connect(editor, &QObject::destroyed, this, [this]() {
         m_editorWindows.removeAll(nullptr);

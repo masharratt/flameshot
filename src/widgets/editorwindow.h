@@ -2,30 +2,39 @@
 
 #pragma once
 
+#include <QJsonArray>
 #include <QPixmap>
 #include <QPointer>
 #include <QString>
 #include <QVector>
 #include <QWidget>
 
+#include <functional>
+
 class CaptureButton;
 class CaptureToolButton;
 class CaptureWidget;
 class EditorSettingsBar;
 class QScrollArea;
+struct CaptureProject;
 
 // A normal top-level window that edits a saved capture. It hosts a
 // CaptureWidget in windowed edit mode inside a scroll area and overwrites the
 // file when the edit is saved. Closing the window discards unsaved edits.
 // The tool buttons live in a fixed strip above the scroll area and the side
 // panel is docked to the left edge of the viewport, so neither scrolls away
-// with a large canvas.
+// with a large canvas. Save Project and Open Project keep the annotations
+// editable in a .fsproj file.
 class EditorWindow : public QWidget
 {
     Q_OBJECT
 public:
-    // image is in device pixels; its device pixel ratio is the canvas ratio
-    EditorWindow(const QString& path, const QPixmap& image);
+    // image is in device pixels; its device pixel ratio is the canvas ratio.
+    // objects are saved annotations (see CaptureProject) placed back over the
+    // image, still editable.
+    EditorWindow(const QString& path,
+                 const QPixmap& image,
+                 const QJsonArray& objects = {});
     ~EditorWindow() override;
 
     // Size and center the window on the screen under the cursor, then show it
@@ -45,7 +54,13 @@ private:
     void layoutToolbar();
     void dockSidePanel();
     void addSelectButton();
-    void addExpandButton();
+    // A plain button at the end of the strip that calls `handler`
+    CaptureButton* addTrailingButton(const QString& iconName,
+                                     const QString& toolTip,
+                                     const std::function<void()>& handler);
+    void addTrailingButtons();
+    void saveProject();
+    void openProject();
     void setSelectChecked(bool checked);
     void addSettingsBar();
     // Height of the button rows alone, without the settings row
@@ -59,7 +74,12 @@ private:
     QWidget* m_toolbar{ nullptr };
     QVector<CaptureToolButton*> m_buttons;
     CaptureButton* m_selectButton{ nullptr };
-    CaptureButton* m_expandButton{ nullptr };
+    // Expand canvas, Save Project, Open Project
+    QVector<CaptureButton*> m_trailingButtons;
+    // Annotations of the opened project that could not be restored
+    QStringList m_restoreWarnings;
     EditorSettingsBar* m_settingsBar{ nullptr };
     QPixmap m_image;
+    // The image file a Save overwrites
+    QString m_path;
 };

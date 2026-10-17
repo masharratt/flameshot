@@ -135,7 +135,8 @@ void EditedThumbnail::mouseReleaseEvent(QMouseEvent* event)
     m_pressed = false;
     switch (thumbnailReleaseAction(event->button())) {
         case ThumbnailAction::Open:
-            Flameshot::instance()->editSavedCapture(m_path, m_image);
+            // Annotations stay editable when the capture has a project
+            Flameshot::instance()->editCaptureAgain(m_path, m_image);
             close();
             break;
         case ThumbnailAction::Close:

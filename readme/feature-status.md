@@ -1,6 +1,6 @@
 # Feature Status (masharratt/flameshot fork)
 
-**Last Updated:** 2026-10-16 (added recording click highlights)
+**Last Updated:** 2026-10-16 (added re-editable screenshots)
 
 | Token | Meaning |
 |-------|---------|
@@ -19,11 +19,12 @@ Plan: `planning/PLAN_sharex_fork.md` (local, not committed).
 | Capture-first workflow | beta | Hotkey and tray captures save and copy on selection release, then show a toast with Edit, Copy, Pin and Show in Finder. Edit opens a normal window with a fixed toolbar on the active Space. Option `captureFirst`, default on. | Unit test harness | Edit window has no Dock icon. Esc closes it only when the canvas has focus. |
 | After-edit thumbnail | beta | Saving from the editor shows a small picture of the result in the bottom-right corner. Left click reopens it in the editor, right click closes it, dragging drops the file into another app. | Capture-first workflow | One at a time. Closes after `editedThumbnailSeconds` (default 4, 0 = until closed), paused on hover. User confirmed it shows after an editor save (2026-10-14). |
 | Hover window detection | beta | Picker shows a dotted outline around the window under the cursor, or the whole screen when no window is there; a click captures it, a drag over 4 px draws a region. No purple help box in picker mode. Option `hoverWindowDetection`, default on. | macOS CGWindowList | macOS only. |
-| Capture history | beta | Every save is logged to history.jsonl; a thumbnail window (tray item or Cmd+Shift+Y) offers Open, Edit, Copy, Show in Finder and Remove. Option `captureHistoryMax`, default 500. | Capture-first workflow | Not yet checked by hand. Editing an image larger than the screen saves a numbered copy. |
+| Capture history | beta | Every save is logged to history.jsonl; a thumbnail window (tray item or Cmd+Shift+Y) offers Open, Edit, Edit again, Copy, Show in Finder and Remove. Option `captureHistoryMax`, default 500. | Capture-first workflow | Not yet checked by hand. Editing an image larger than the screen saves a numbered copy. |
 | Per-hotkey after-capture actions | beta | TAKE_SCREENSHOT and CAPTURE_AND_EDIT each run a configurable action list (save, copy image, copy path, open editor, pin, effects, toast) set on the Workflows tab. Hotkeys re-register live when changed. | Capture-first workflow | Not yet checked by hand. |
 | Image effects | beta | Border, rounded corners and drop shadow applied by the Apply Effects action, configured with a live preview on the Workflows tab. | Per-hotkey actions | Not yet checked by hand. Effects needing transparency save as PNG only on the workflow save path. |
 | Beautify | dev | Toolbar button and "Beautify every capture" option add a gradient or solid background, padding and shadow to the exported image. Configured on the Workflows tab. | Image effects | Not yet checked by hand. Save dialog path ignores the JPEG to PNG switch. |
 | Beautify size presets | dev | Option `effectAspect` grows the Beautify canvas to 1:1, 16:9, 9:16, 4:5 or 4:3 without cropping; `effectAutoBalance` first trims uneven blank margins from the capture. Set on the Workflows tab. | Beautify | Not yet checked by hand. |
+| Re-editable screenshots | dev | Annotated captures keep a project (base image plus annotations) with their history entry. Edit again, the after-edit thumbnail and the toast reopen it with objects still editable; the editor can Save and Open .fsproj files. | Capture history | Not yet checked by hand. Project files are kept until the history entry is trimmed or removed. |
 | Capture timer | dev | Option `captureDelaySec` (0 to 10) shows a countdown before hotkey and tray region captures start. Click the countdown to cancel. CLI --delay wins; recordings are not delayed. | Capture overlay | Not yet checked by hand. |
 | Copy Text (OCR) | dev | Toolbar button reads the text and any QR code in the selection with Apple Vision, copies it to the clipboard and closes the capture. | macOS Vision framework | Not yet checked by hand. macOS only, hidden elsewhere. QR path has no automated test. |
 | Ruler tool | beta | Editor tool that draws a measured line labelled with length and width x height in physical pixels. | Tool system | Not yet checked by hand in the running app. |

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2017-2019 Alejandro Sirgo Rica & Contributors
 
 #include "abstractpathtool.h"
+#include "toolstate.h"
 
 #include <cmath>
 
@@ -151,4 +152,47 @@ const QPoint* AbstractPathTool::pos()
     m_pos.setX(x);
     m_pos.setY(y);
     return &m_pos;
+}
+
+// Bounds for a saved thickness: far above any size the UI can set
+static constexpr int kMaxSavedThickness = 10000;
+
+void AbstractPathTool::saveState(QJsonObject& state) const
+{
+    CaptureTool::saveState(state);
+    QJsonArray points;
+    for (const QPoint& p : m_points) {
+        points.append(toolstate::fromPoint(p));
+    }
+    state.insert(QStringLiteral("points"), points);
+    state.insert(QStringLiteral("color"), toolstate::fromColor(m_color));
+    state.insert(QStringLiteral("thickness"), m_thickness);
+}
+
+bool AbstractPathTool::loadState(const QJsonObject& state)
+{
+    const QJsonValue points = state.value(QStringLiteral("points"));
+    if (!CaptureTool::loadState(state) || !points.isArray() ||
+        !toolstate::toColor(state.value(QStringLiteral("color")), m_color) ||
+        !toolstate::toInt(state.value(QStringLiteral("thickness")),
+                          0,
+                          kMaxSavedThickness,
+                          m_thickness)) {
+        return false;
+    }
+    m_points.clear();
+    for (const QJsonValue& v : points.toArray()) {
+        QPoint p;
+        if (!toolstate::toPoint(v, p)) {
+            return false;
+        }
+        m_points.append(p);
+    }
+    if (!m_points.isEmpty()) {
+        m_pathArea = QRect(m_points.first(), m_points.first());
+        for (const QPoint& p : m_points) {
+            m_pathArea = m_pathArea.united(QRect(p, p));
+        }
+    }
+    return true;
 }

@@ -45,6 +45,10 @@ public:
     void setEditMode(bool editMode) override;
     bool isChanged() override;
 
+    [[nodiscard]] bool isSaveable() const override { return true; }
+    void saveState(QJsonObject& state) const override;
+    bool loadState(const QJsonObject& state) override;
+
 protected:
     void copyParams(const TextTool* from, TextTool* to);
     [[nodiscard]] CaptureTool::Type type() const override;

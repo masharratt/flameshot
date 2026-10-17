@@ -28,6 +28,9 @@ public:
     void paintMousePreview(QPainter& painter,
                            const CaptureContext& context) override;
     void drawObjectSelection(QPainter& painter) override;
+    bool isSaveable() const override { return true; }
+    void saveState(QJsonObject& state) const override;
+    bool loadState(const QJsonObject& state) override;
 
     // Bending: tools that opt in (arrow, line) show a handle at the curve
     // midpoint while selected. The bend is stored as the quadratic control

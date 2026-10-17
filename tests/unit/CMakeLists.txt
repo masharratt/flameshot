@@ -39,6 +39,24 @@ flameshot_add_unit_test(tst_curvemath SOURCES tools/curvemath.cpp)
 flameshot_add_unit_test(tst_editorvisibility SOURCES widgets/editorvisibility.cpp)
 flameshot_add_unit_test(tst_thumbnailgesture SOURCES widgets/thumbnailgesture.cpp)
 flameshot_add_unit_test(tst_capturedelay SOURCES core/capturedelay.cpp)
+# Every drawable tool, built against an in-memory ConfigHandler so the test
+# never reads or writes the user's settings
+flameshot_add_unit_test(tst_captureproject
+  SOURCES utils/captureproject.cpp tools/drawabletools.cpp tools/toolstate.cpp
+          tools/capturetool.h utils/confighandler.h
+          tools/capturecontext.cpp core/capturerequest.cpp
+          tools/abstracttwopointtool.cpp tools/abstractpathtool.cpp
+          tools/curvemath.cpp tools/ruler/rulermath.cpp
+          tools/arrow/arrowtool.cpp tools/circle/circletool.cpp
+          tools/circlecount/circlecounttool.cpp tools/invert/inverttool.cpp
+          tools/line/linetool.cpp tools/marker/markertool.cpp
+          tools/pencil/penciltool.cpp tools/pixelate/pixelatetool.cpp
+          tools/rectangle/rectangletool.cpp tools/ruler/rulertool.cpp
+          tools/selection/selectiontool.cpp tools/text/texttool.cpp
+          tools/text/textconfig.cpp tools/text/textwidget.cpp
+          utils/colorutils.cpp utils/pathinfo.cpp)
+target_sources(tst_captureproject PRIVATE fakes/fakeconfighandler.cpp)
+target_compile_definitions(tst_captureproject PRIVATE APP_PREFIX="${CMAKE_INSTALL_PREFIX}")
 
 if(APPLE)
   # Vision text recognition (Objective-C++, ARC)

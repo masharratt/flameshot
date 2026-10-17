@@ -29,6 +29,8 @@ const int kPathRole = Qt::UserRole;
 const int kLoadedRole = Qt::UserRole + 1;
 const int kMissingRole = Qt::UserRole + 2;
 const int kKindRole = Qt::UserRole + 3;
+// Re-editable project file, empty when the capture has none
+const int kProjectRole = Qt::UserRole + 4;
 
 bool isRecordingKind(const QString& kind)
 {
@@ -76,6 +78,10 @@ CaptureHistoryWindow::CaptureHistoryWindow(QWidget* parent)
     };
     m_openButton = makeButton(tr("Open"), [this]() { openCurrent(); });
     m_editButton = makeButton(tr("Edit"), [this]() { editCurrent(); });
+    m_editAgainButton =
+      makeButton(tr("Edit again"), [this]() { editAgainCurrent(); });
+    m_editAgainButton->setToolTip(
+      tr("Open with the annotations still movable and editable"));
     m_copyButton = makeButton(tr("Copy"), [this]() { copyCurrent(); });
     m_finderButton =
       makeButton(tr("Show in Finder"), [this]() { showCurrentInFinder(); });
@@ -85,6 +91,7 @@ CaptureHistoryWindow::CaptureHistoryWindow(QWidget* parent)
     auto* buttons = new QHBoxLayout();
     buttons->addWidget(m_openButton);
     buttons->addWidget(m_editButton);
+    buttons->addWidget(m_editAgainButton);
     buttons->addWidget(m_copyButton);
     buttons->addWidget(m_finderButton);
     buttons->addStretch();
@@ -136,6 +143,8 @@ void CaptureHistoryWindow::reload()
         item->setData(kPathRole, e.path);
         item->setData(kLoadedRole, false);
         item->setData(kKindRole, e.kind);
+        item->setData(kProjectRole,
+                      QFileInfo::exists(e.project) ? e.project : QString());
         item->setToolTip(e.path);
         const QString when =
           e.timestamp.toLocalTime().toString(QStringLiteral("yyyy-MM-dd HH:mm"));
@@ -230,6 +239,8 @@ void CaptureHistoryWindow::updateButtons()
     // Recordings cannot be edited; Copy puts their path on the clipboard
     m_editButton->setEnabled(
       usable && !isRecordingKind(item->data(kKindRole).toString()));
+    m_editAgainButton->setEnabled(
+      usable && !item->data(kProjectRole).toString().isEmpty());
     m_copyButton->setEnabled(usable);
     m_finderButton->setEnabled(usable);
     m_removeButton->setEnabled(has);
@@ -248,6 +259,20 @@ void CaptureHistoryWindow::openCurrent()
 // Opens the file in its own editor window. A file has no device pixel ratio,
 // so it takes the one of the screen under the cursor: one image pixel is one
 // device pixel and saving overwrites the file without resampling.
+QPixmap CaptureHistoryWindow::flatImageForEdit(const QString& path)
+{
+    QPixmap image(path);
+    if (image.isNull()) {
+        return image;
+    }
+    QScreen* screen = QGuiApplication::screenAt(QCursor::pos());
+    if (!screen) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    image.setDevicePixelRatio(screen->devicePixelRatio());
+    return image;
+}
+
 void CaptureHistoryWindow::editCurrent()
 {
     QListWidgetItem* item = currentItemOrNull();
@@ -255,17 +280,25 @@ void CaptureHistoryWindow::editCurrent()
         return;
     }
     const QString path = item->data(kPathRole).toString();
-    const QPixmap pixmap(path);
-    if (pixmap.isNull()) {
+    const QPixmap image = flatImageForEdit(path);
+    if (image.isNull()) {
         return;
     }
-    QScreen* screen = QGuiApplication::screenAt(QCursor::pos());
-    if (!screen) {
-        screen = QGuiApplication::primaryScreen();
-    }
-    QPixmap image = pixmap;
-    image.setDevicePixelRatio(screen->devicePixelRatio());
     Flameshot::instance()->editSavedCapture(path, image);
+    close();
+}
+
+// Opens the capture's project: the image before annotations and effects,
+// with every annotation still editable. Saving overwrites the file.
+void CaptureHistoryWindow::editAgainCurrent()
+{
+    QListWidgetItem* item = currentItemOrNull();
+    if (!item || item->data(kMissingRole).toBool() ||
+        item->data(kProjectRole).toString().isEmpty()) {
+        return;
+    }
+    const QString path = item->data(kPathRole).toString();
+    Flameshot::instance()->editCaptureAgain(path, flatImageForEdit(path));
     close();
 }
 

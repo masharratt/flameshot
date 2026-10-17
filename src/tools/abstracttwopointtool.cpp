@@ -3,6 +3,7 @@
 
 #include "abstracttwopointtool.h"
 #include "curvemath.h"
+#include "toolstate.h"
 
 #include <QCursor>
 #include <QScreen>
@@ -237,4 +238,46 @@ void AbstractTwoPointTool::drawBendHandle(QPainter& painter) const
     painter.setBrush(Qt::white);
     painter.drawEllipse(handle, BendHandleRadiusPx, BendHandleRadiusPx);
     painter.restore();
+}
+
+// Bounds for a saved thickness: far above any size the UI can set
+static constexpr int kMaxSavedThickness = 10000;
+
+void AbstractTwoPointTool::saveState(QJsonObject& state) const
+{
+    CaptureTool::saveState(state);
+    state.insert(QStringLiteral("p1"), toolstate::fromPoint(m_points.first));
+    state.insert(QStringLiteral("p2"), toolstate::fromPoint(m_points.second));
+    state.insert(QStringLiteral("color"), toolstate::fromColor(m_color));
+    state.insert(QStringLiteral("thickness"), m_thickness);
+    if (m_control) {
+        state.insert(QStringLiteral("control"),
+                     toolstate::fromPointF(*m_control));
+    }
+}
+
+bool AbstractTwoPointTool::loadState(const QJsonObject& state)
+{
+    if (!CaptureTool::loadState(state) ||
+        !toolstate::toPoint(state.value(QStringLiteral("p1")),
+                            m_points.first) ||
+        !toolstate::toPoint(state.value(QStringLiteral("p2")),
+                            m_points.second) ||
+        !toolstate::toColor(state.value(QStringLiteral("color")), m_color) ||
+        !toolstate::toInt(state.value(QStringLiteral("thickness")),
+                          0,
+                          kMaxSavedThickness,
+                          m_thickness)) {
+        return false;
+    }
+    m_control.reset();
+    const QJsonValue control = state.value(QStringLiteral("control"));
+    if (!control.isUndefined()) {
+        QPointF c;
+        if (!toolstate::toPointF(control, c)) {
+            return false;
+        }
+        m_control = c;
+    }
+    return true;
 }

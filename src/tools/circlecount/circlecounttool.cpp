@@ -240,3 +240,15 @@ void CircleCountTool::pressed(CaptureContext& context)
 {
     Q_UNUSED(context)
 }
+
+// The counter number is saved by CaptureTool (count); a loaded bubble is
+// always a placed one
+bool CircleCountTool::loadState(const QJsonObject& state)
+{
+    if (!AbstractTwoPointTool::loadState(state) || count() < MIN_COUNTER ||
+        count() > MAX_COUNTER) {
+        return false;
+    }
+    m_valid = true;
+    return true;
+}

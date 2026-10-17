@@ -33,6 +33,10 @@ private:
 
     void openCurrent();
     void editCurrent();
+    void editAgainCurrent();
+    // The saved file with the device pixel ratio of the screen under the
+    // cursor: one image pixel is one device pixel
+    static QPixmap flatImageForEdit(const QString& path);
     void copyCurrent();
     void showCurrentInFinder();
     void removeCurrent();
@@ -43,6 +47,7 @@ private:
     QListWidget* m_list;
     QPushButton* m_openButton;
     QPushButton* m_editButton;
+    QPushButton* m_editAgainButton;
     QPushButton* m_copyButton;
     QPushButton* m_finderButton;
     QPushButton* m_removeButton;

@@ -225,7 +225,8 @@ void CaptureToast::openFromThumbnail()
     if (m_recording) {
         QDesktopServices::openUrl(QUrl::fromLocalFile(m_path));
     } else {
-        Flameshot::instance()->editSavedCapture(m_path, m_capture);
+        // Annotations stay editable when the capture has a project
+        Flameshot::instance()->editCaptureAgain(m_path, m_capture);
     }
     close();
 }

@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "utils/captureproject.h"
+
 #include <QPixmap>
 #include <QString>
 #include <QVariant>
@@ -56,6 +58,8 @@ public:
     // device pixel ratio is the canvas ratio.
     QPixmap editImage() const;
     bool overwriteExisting() const;
+    // Re-editable project of a finished annotated capture (empty otherwise)
+    CaptureProject project() const;
     bool captureFirst() const;
     QRect capturedGlobalRect() const;
     // Name of the hotkey that started this request ("" for CLI and editor).
@@ -69,6 +73,7 @@ public:
     void setInitialSelection(const QRect& selection);
     // Open the windowed editor on this image instead of grabbing the screen.
     void setEditImage(const QPixmap& image);
+    void setProject(const CaptureProject& project);
     // Save to the exact path given, replacing the file instead of numbering.
     void setOverwriteExisting(bool overwrite);
     // Marks a request made by the capture-first hotkey or tray path.
@@ -90,6 +95,7 @@ private:
     QVariant m_data;
     QRect m_pinWindowGeometry, m_initialSelection;
     QPixmap m_editImage;
+    CaptureProject m_project;
     bool m_overwriteExisting = false;
     bool m_captureFirst = false;
     QRect m_capturedGlobalRect;

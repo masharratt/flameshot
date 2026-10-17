@@ -11,7 +11,8 @@
 
 // Small always-on-top picture of an image just saved from the editor, in the
 // bottom-right corner of the screen under the cursor. Left click opens it in
-// the editor again, right click closes it, and dragging drops the file into
+// the editor again (annotations still editable when it has a project), right
+// click closes it, and dragging drops the file into
 // another app. It closes itself after the configured seconds, paused while
 // hovered. Only one is shown at a time; a newer edit replaces it.
 class EditedThumbnail : public QWidget

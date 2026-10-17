@@ -3,6 +3,7 @@
 
 #include "arrowtool.h"
 #include "tools/curvemath.h"
+#include "tools/toolstate.h"
 #include "utils/confighandler.h"
 
 #include <QComboBox>
@@ -351,4 +352,24 @@ void ArrowTool::setArrowStyle(int style)
     }
     m_arrowStyle = static_cast<ArrowStyle>(style);
     ConfigHandler().setArrowStyle(style);
+}
+
+void ArrowTool::saveState(QJsonObject& state) const
+{
+    AbstractTwoPointTool::saveState(state);
+    state.insert(QStringLiteral("arrowStyle"), static_cast<int>(m_arrowStyle));
+}
+
+bool ArrowTool::loadState(const QJsonObject& state)
+{
+    int style = 0;
+    if (!AbstractTwoPointTool::loadState(state) ||
+        !toolstate::toInt(state.value(QStringLiteral("arrowStyle")),
+                          MinArrowStyle,
+                          MaxArrowStyle,
+                          style)) {
+        return false;
+    }
+    m_arrowStyle = static_cast<ArrowStyle>(style);
+    return true;
 }

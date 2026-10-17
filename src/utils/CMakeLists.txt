@@ -26,6 +26,7 @@ target_sources(
           colorutils.cpp
           history.cpp
           capturehistory.cpp
+          captureproject.cpp
           strfparse.cpp
           imageeffects.cpp
 )

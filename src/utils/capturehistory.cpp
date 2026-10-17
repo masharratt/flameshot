@@ -24,6 +24,9 @@ QByteArray encode(const HistoryEntry& e)
     o.insert(QStringLiteral("w"), e.size.width());
     o.insert(QStringLiteral("h"), e.size.height());
     o.insert(QStringLiteral("kind"), e.kind);
+    if (!e.project.isEmpty()) {
+        o.insert(QStringLiteral("proj"), e.project);
+    }
     return QJsonDocument(o).toJson(QJsonDocument::Compact) + '\n';
 }
 
@@ -46,6 +49,7 @@ bool decode(const QByteArray& line, HistoryEntry& out)
     out.size = QSize(o.value(QStringLiteral("w")).toInt(),
                      o.value(QStringLiteral("h")).toInt());
     out.kind = o.value(QStringLiteral("kind")).toString(QStringLiteral("image"));
+    out.project = o.value(QStringLiteral("proj")).toString();
     return true;
 }
 
@@ -64,6 +68,39 @@ QString CaptureHistory::defaultIndexPath()
 {
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) +
            QStringLiteral("/history.jsonl");
+}
+
+QString CaptureHistory::projectDir() const
+{
+    return QFileInfo(m_indexFile).absolutePath() + QStringLiteral("/projects");
+}
+
+QString CaptureHistory::projectFor(const QString& imagePath) const
+{
+    for (const HistoryEntry& e : entries()) {
+        if (e.path == imagePath) {
+            return !e.project.isEmpty() && QFileInfo::exists(e.project)
+                     ? e.project
+                     : QString();
+        }
+    }
+    return {};
+}
+
+// Only files directly inside projectDir are ours to delete; a path anywhere
+// else in the index is left alone
+void CaptureHistory::deleteProjects(const QList<HistoryEntry>& dropped) const
+{
+    const QString dir = QDir::cleanPath(projectDir());
+    for (const HistoryEntry& e : dropped) {
+        if (e.project.isEmpty()) {
+            continue;
+        }
+        const QFileInfo info(e.project);
+        if (QDir::cleanPath(info.absolutePath()) == dir) {
+            QFile::remove(info.absoluteFilePath());
+        }
+    }
 }
 
 bool CaptureHistory::append(const HistoryEntry& entry)
@@ -137,12 +174,21 @@ QList<HistoryEntry> CaptureHistory::entries() const
 bool CaptureHistory::remove(const QString& path)
 {
     QList<HistoryEntry> list = load();
-    const qsizetype before = list.size();
-    list.removeIf([&](const HistoryEntry& e) { return e.path == path; });
-    if (list.size() == before) {
+    QList<HistoryEntry> dropped;
+    for (const HistoryEntry& e : list) {
+        if (e.path == path) {
+            dropped.append(e);
+        }
+    }
+    if (dropped.isEmpty()) {
         return false;
     }
-    return rewrite(list);
+    list.removeIf([&](const HistoryEntry& e) { return e.path == path; });
+    if (!rewrite(list)) {
+        return false;
+    }
+    deleteProjects(dropped);
+    return true;
 }
 
 void CaptureHistory::trimTo(int max)
@@ -151,8 +197,11 @@ void CaptureHistory::trimTo(int max)
     if (max < 0 || list.size() <= max) {
         return;
     }
+    const QList<HistoryEntry> dropped = list.mid(0, list.size() - max);
     list = list.mid(list.size() - max);
-    rewrite(list);
+    if (rewrite(list)) {
+        deleteProjects(dropped);
+    }
 }
 
 int CaptureHistory::skippedLines() const

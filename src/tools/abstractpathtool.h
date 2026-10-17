@@ -20,6 +20,9 @@ public:
     void move(const QPoint& mousePos) override;
     const QPoint* pos() override;
     int size() const override { return m_thickness; };
+    bool isSaveable() const override { return true; }
+    void saveState(QJsonObject& state) const override;
+    bool loadState(const QJsonObject& state) override;
 
 public slots:
     void drawEnd(const QPoint& p) override;
