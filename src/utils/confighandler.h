@@ -164,6 +164,7 @@ public:
     CONFIG_GETTER_SETTER(gifFps, setGifFps, int)
     CONFIG_GETTER_SETTER(gifMaxWidth, setGifMaxWidth, int)
     CONFIG_GETTER_SETTER(recordShowClicks, setRecordShowClicks, bool)
+    CONFIG_GETTER_SETTER(scrollCaptureMaxHeight, setScrollCaptureMaxHeight, int)
     CONFIG_GETTER_SETTER(actionsTakeScreenshot,
                          setActionsTakeScreenshot,
                          QStringList)

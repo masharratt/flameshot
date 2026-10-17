@@ -20,6 +20,7 @@ class EditorWindow;
 class QTimer;
 class QWidget;
 class RecordingController;
+class ScrollCaptureController;
 #ifdef ENABLE_IMGUR
 class UploadHistory;
 #endif
@@ -101,6 +102,9 @@ signals:
 public slots:
     // Record hotkey or menu item: picks an area, or stops a running recording
     void toggleRecording(CaptureRequest::RecordMode mode);
+    // Scrolling capture hotkey or menu item: picks an area, or finishes the
+    // capture in progress
+    void toggleScrollCapture();
     void requestCapture(const CaptureRequest& request);
     // Reopen a saved capture in its own editor window. Saving overwrites the
     // file at path. capture is in device pixels and carries its own device
@@ -148,6 +152,7 @@ private:
     QPointer<CaptureLauncher> m_launcherWindow;
     QPointer<ConfigWindow> m_configWindow;
     RecordingController* m_recording = nullptr;
+    ScrollCaptureController* m_scrolling = nullptr;
     CountdownStateMachine m_countdown;
     // Project of the capture being exported; set only during exportCapture
     // so every save it makes records it in the history

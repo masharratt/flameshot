@@ -41,6 +41,8 @@ flameshot_add_unit_test(tst_curvemath SOURCES tools/curvemath.cpp)
 flameshot_add_unit_test(tst_editorvisibility SOURCES widgets/editorvisibility.cpp)
 flameshot_add_unit_test(tst_thumbnailgesture SOURCES widgets/thumbnailgesture.cpp)
 flameshot_add_unit_test(tst_capturedelay SOURCES core/capturedelay.cpp)
+flameshot_add_unit_test(tst_scrollstitch SOURCES utils/scrollstitch.cpp)
+flameshot_add_unit_test(tst_scrollcapturestate SOURCES core/scrollcapturestate.cpp)
 # Every drawable tool, built against an in-memory ConfigHandler so the test
 # never reads or writes the user's settings
 flameshot_add_unit_test(tst_captureproject
@@ -74,6 +76,7 @@ if(APPLE)
   add_executable(tst_videoedit tst_videoedit.mm
     "${CMAKE_SOURCE_DIR}/src/platform/macos/videoedit.mm"
     "${CMAKE_SOURCE_DIR}/src/platform/macos/videothumbnail.mm"
+    "${CMAKE_SOURCE_DIR}/src/platform/macos/cgimage.mm"
     "${CMAKE_SOURCE_DIR}/src/core/recordingedit.cpp"
     "${CMAKE_SOURCE_DIR}/src/utils/beautifylayout.cpp"
     "${CMAKE_SOURCE_DIR}/src/utils/imageeffects.cpp")

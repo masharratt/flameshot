@@ -160,6 +160,14 @@ void TrayIcon::initMenu()
             });
             m_recordActions << action;
         }
+        // Scrolling capture grabs with ScreenCaptureKit too
+        auto* scrollAction = new QAction(tr("&Scrolling Capture"), this);
+        connect(scrollAction, &QAction::triggered, this, []() {
+            QTimer::singleShot(400, Flameshot::instance(), []() {
+                Flameshot::instance()->toggleScrollCapture();
+            });
+        });
+        m_recordActions << scrollAction;
     }
     auto* configAction = new QAction(tr("&Configuration"), this);
     connect(configAction,

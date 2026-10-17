@@ -3,6 +3,7 @@ target_sources(flameshot PRIVATE
     windowpick.h
     windowpick.cpp
     screenrecorder.h
+    scrollcapture.h
     gifencoder.h
     videothumbnail.h
     videoedit.h
@@ -14,6 +15,11 @@ if (APPLE)
     target_sources(flameshot PRIVATE
         macos/windowlist_mac.cpp
         macos/screenrecorder.mm
+        macos/scrollcapture_mac.mm
+        macos/sckdisplay.h
+        macos/sckdisplay.mm
+        macos/cgimage.h
+        macos/cgimage.mm
         macos/gifencoder.mm
         macos/videothumbnail.mm
         macos/videoedit.mm
@@ -33,6 +39,7 @@ if (APPLE)
         "-framework CoreGraphics"
         "-framework CoreFoundation"
         "-framework AppKit"
+        "-framework ApplicationServices"
         "-framework AVFoundation"
         "-framework CoreMedia"
         "-framework CoreVideo"
@@ -45,5 +52,5 @@ if (APPLE)
     )
 else ()
     target_sources(flameshot PRIVATE windowlist_stub.cpp recording_stub.cpp
-        windowspace_stub.cpp)
+        windowspace_stub.cpp scrollcapture_stub.cpp)
 endif ()

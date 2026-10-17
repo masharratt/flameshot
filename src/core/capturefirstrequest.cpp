@@ -38,6 +38,25 @@ CaptureRequest buildRecordRequest(CaptureRequest::RecordMode mode)
     return req;
 }
 
+CaptureRequest buildScrollCaptureRequest()
+{
+    CaptureRequest req(CaptureRequest::GRAPHICAL_MODE);
+    req.addTask(CaptureRequest::ACCEPT_ON_SELECT);
+    req.setCaptureFirst(true);
+    req.setScrollCapture(true);
+    return req;
+}
+
+CaptureRequest buildScrollResultRequest(const QRect& globalRect,
+                                        const QString& savePath,
+                                        const QString& picturesFallback)
+{
+    CaptureRequest req = buildCaptureFirstRequest(
+      QStringLiteral("TAKE_SCREENSHOT"), savePath, picturesFallback);
+    req.setCapturedGlobalRect(globalRect);
+    return req;
+}
+
 bool shouldApplyLastRegion(const CaptureRequest& req,
                            bool saveLastRegionEnabled)
 {

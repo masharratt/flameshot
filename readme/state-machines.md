@@ -177,3 +177,52 @@ stateDiagram-v2
   Saved --> Closed
   Closed --> [*]
 ```
+
+## 5. Scrolling Capture
+
+**Source:** `src/core/scrollcapturestate.h` (`ScrollState`, `ScrollMode`, `canTransition`, `ScrollCaptureMachine`), driven by `src/core/scrollcapturecontroller.cpp`.
+
+### States
+| State | Meaning |
+|-------|---------|
+| Idle | No scrolling capture in progress. |
+| Picking | Area picker overlay open. |
+| Scrolling | Floating bar shown; the area is grabbed and stitched. Mode Manual (the user scrolls, about nine grabs a second) or Auto (synthetic wheel events, one grab after each). Every capture starts Manual. |
+| Done | Tall image handed to the normal export path (TAKE_SCREENSHOT actions). |
+| Cancelled | Cancel pressed; nothing is kept. |
+| Failed | No area, the grab could not start, three grabs in a row failed, or a grab hung for 3 s. |
+
+### Transitions
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| Idle | Picking | Scrolling capture hotkey or tray item | none |
+| Picking | Scrolling | Area picked | area not empty |
+| Picking | Failed | Empty area picked | none |
+| Picking | Idle | Overlay closed with no area | none |
+| Scrolling | Done | Done button, same hotkey, or Auto reached the end or the height limit | something was stitched |
+| Scrolling | Failed | Grab error or timeout, or Done with nothing stitched | none |
+| Scrolling | Cancelled | Cancel button | none |
+| Done, Failed, Cancelled | Idle | Cleanup finished | none |
+
+Mode changes happen only inside Scrolling: Manual to Auto via the Auto button when Accessibility is granted (otherwise the system prompt is shown and the mode stays Manual); Auto to Manual via Stop auto, a frame that matches nothing, or a scroll event that could not be posted.
+
+### Diagram
+```mermaid
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Picking
+  Picking --> Scrolling
+  Picking --> Failed
+  Picking --> Idle
+  state Scrolling {
+    [*] --> Manual
+    Manual --> Auto
+    Auto --> Manual
+  }
+  Scrolling --> Done
+  Scrolling --> Failed
+  Scrolling --> Cancelled
+  Done --> Idle
+  Failed --> Idle
+  Cancelled --> Idle
+```

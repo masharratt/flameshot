@@ -150,7 +150,8 @@ void ShortcutsWidget::updateOptionWarning()
                                  QStringLiteral("CAPTURE_AND_EDIT"),
                                  QStringLiteral("SCREENSHOT_HISTORY"),
                                  QStringLiteral("RECORD_MP4"),
-                                 QStringLiteral("RECORD_GIF") }) {
+                                 QStringLiteral("RECORD_GIF"),
+                                 QStringLiteral("SCROLL_CAPTURE") }) {
         if (isOptionOnlyShortcut(QKeySequence(m_config.shortcut(name)))) {
             offenders << name;
         }
@@ -254,6 +255,7 @@ void ShortcutsWidget::loadShortcuts()
     if (screenRecordingSupported()) {
         appendShortcut("RECORD_MP4", tr("Record MP4"));
         appendShortcut("RECORD_GIF", tr("Record GIF"));
+        appendShortcut("SCROLL_CAPTURE", tr("Scrolling capture"));
     }
 #elif defined(Q_OS_WIN)
     if (this->isPrintScreenKeyForSnippingDisabled()) {

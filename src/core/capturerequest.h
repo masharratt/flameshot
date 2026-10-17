@@ -65,6 +65,8 @@ public:
     // Name of the hotkey that started this request ("" for CLI and editor).
     QString workflow() const;
     RecordMode recordMode() const;
+    // Set on requests that only pick the area of a scrolling capture
+    bool scrollCapture() const;
 
     void addTask(ExportTask task);
     void removeTask(ExportTask task);
@@ -83,6 +85,7 @@ public:
     // the SAVE and COPY tasks.
     void setWorkflow(const QString& workflow);
     void setRecordMode(RecordMode mode);
+    void setScrollCapture(bool scrollCapture);
     void setSelectedMonitor(int monitorIndex);
     int selectedMonitor() const;
     bool hasSelectedMonitor() const;
@@ -101,6 +104,7 @@ private:
     QRect m_capturedGlobalRect;
     QString m_workflow;
     RecordMode m_recordMode = RecordNone;
+    bool m_scrollCapture = false;
     int m_selectedMonitor;
     bool m_hasSelectedMonitor;
 

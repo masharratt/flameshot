@@ -23,6 +23,16 @@ CaptureRequest::RecordMode recordModeForHotkey(const QString& hotkey);
 // and no save path, so nothing is exported as an image.
 CaptureRequest buildRecordRequest(CaptureRequest::RecordMode mode);
 
+// Request that only picks the area of a scrolling capture, like a record pick
+CaptureRequest buildScrollCaptureRequest();
+
+// Request that exports a finished scrolling capture through the
+// TAKE_SCREENSHOT actions, as if the tall image were an ordinary capture of
+// globalRect.
+CaptureRequest buildScrollResultRequest(const QRect& globalRect,
+                                        const QString& savePath,
+                                        const QString& picturesFallback);
+
 // Native macOS fullscreen animates and slows rapid captures, so capture-first
 // requests always use a plain overlay window.
 bool shouldUseNativeFullscreen(const CaptureRequest& req,

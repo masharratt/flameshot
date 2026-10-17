@@ -51,6 +51,7 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "core/hotkeyutils.h"
 #include "core/qguiappcurrentscreen.h"
 #include "core/recordingcontroller.h"
+#include "core/scrollcapturecontroller.h"
 #include "platform/screenrecorder.h"
 #include "utils/abstractlogger.h"
 #include "utils/capturehistory.h"
@@ -186,6 +187,31 @@ Flameshot::Flameshot()
                 }
             });
 
+    // Scrolling capture: the controller asks for the area picker and hands
+    // back the tall image, which is exported like any capture.
+    m_scrolling = new ScrollCaptureController(this);
+    connect(m_scrolling, &ScrollCaptureController::pickRequested, this, [this]() {
+        if (gui(buildScrollCaptureRequest()) == nullptr) {
+            m_scrolling->pickAbandoned();
+        }
+    });
+    connect(this,
+            &Flameshot::captureFailed,
+            m_scrolling,
+            &ScrollCaptureController::pickAbandoned);
+    connect(m_scrolling,
+            &ScrollCaptureController::captured,
+            this,
+            [this](const QPixmap& image, const QRect& globalRect) {
+                const CaptureRequest req = buildScrollResultRequest(
+                  globalRect,
+                  ConfigHandler().savePath(),
+                  QStandardPaths::writableLocation(
+                    QStandardPaths::PicturesLocation));
+                QRect selection(QPoint(0, 0), globalRect.size());
+                exportCapture(image, selection, req);
+            });
+
 #if defined(Q_OS_MACOS)
     // Request Screen Recording permission via the proper CoreGraphics API
     if (!CGPreflightScreenCaptureAccess()) {
@@ -218,7 +244,8 @@ QStringList globalHotkeyNames()
     names << QStringLiteral("SCREENSHOT_HISTORY");
 #endif
     if (screenRecordingSupported()) {
-        names << QStringLiteral("RECORD_MP4") << QStringLiteral("RECORD_GIF");
+        names << QStringLiteral("RECORD_MP4") << QStringLiteral("RECORD_GIF")
+              << QStringLiteral("SCROLL_CAPTURE");
     }
     return names;
 }
@@ -280,6 +307,11 @@ void Flameshot::onHotkeyActivated(const QString& name)
         return;
     }
 
+    if (name == QLatin1String("SCROLL_CAPTURE")) {
+        toggleScrollCapture();
+        return;
+    }
+
     const CaptureRequest::RecordMode recordMode = recordModeForHotkey(name);
     if (recordMode != CaptureRequest::RecordNone) {
         toggleRecording(recordMode);
@@ -306,6 +338,15 @@ void Flameshot::toggleRecording(CaptureRequest::RecordMode mode)
         return;
     }
     m_recording->trigger(mode);
+}
+
+void Flameshot::toggleScrollCapture()
+{
+    // Uses the same ScreenCaptureKit support as recording
+    if (!screenRecordingSupported()) {
+        return;
+    }
+    m_scrolling->trigger();
 }
 
 Flameshot* Flameshot::instance()
@@ -847,6 +888,11 @@ void Flameshot::exportCapture(const QPixmap& rawCapture,
     if (req.recordMode() != CR::RecordNone) {
         // Area pick for a recording: nothing is exported as an image
         m_recording->areaPicked(req.capturedGlobalRect());
+        return;
+    }
+    if (req.scrollCapture()) {
+        // Area pick for a scrolling capture: the image comes later
+        m_scrolling->areaPicked(req.capturedGlobalRect());
         return;
     }
     // Beautify replaces the capture for every task below

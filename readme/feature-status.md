@@ -1,6 +1,6 @@
 # Feature Status (masharratt/flameshot fork)
 
-**Last Updated:** 2026-10-16 (added recording editor: trim and Beautify for recordings)
+**Last Updated:** 2026-10-16 (added scrolling capture)
 
 | Token | Meaning |
 |-------|---------|
@@ -36,3 +36,4 @@ Plan: `planning/PLAN_sharex_fork.md` (local, not committed).
 | Editor select tool | beta | Pointer button (V) in the editor toolbar that turns drawing off so existing objects can be selected, moved, bent or re-edited. | Windowed editor | None known. |
 | Editor hide and Cmd+Tab | beta | Edit windows hide when another app is activated and return via Cmd+Tab, the Dock or the menu bar; a Dock icon appears only while editors are open and the app is in the background. Clicking the toast picture opens Edit. | Windowed editor | Opening the menu bar menu hides editors until the app is reactivated. |
 | Local certificate signing | beta | `CODE_SIGN_IDENTITY` plus `CODE_SIGN_HARDENED_RUNTIME=OFF` signs with a self-signed local certificate, giving every rebuild the same identity so macOS keeps the Screen Recording grant. | codesign, local Keychain certificate | Hardened runtime must stay off with a self-signed certificate or bundled Qt frameworks fail to load. |
+| Scrolling capture | dev | Tray item or `SCROLL_CAPTURE` hotkey picks an area; a floating bar grabs it while you scroll (or Auto scrolls for you) and stitches one tall image, which goes through the normal capture actions. Option `scrollCaptureMaxHeight`, default 20000 px. | ScreenCaptureKit, macOS 15+ | Not yet checked by hand. Auto needs Accessibility. Moving content inside the area breaks matching. |

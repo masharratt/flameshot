@@ -30,6 +30,7 @@ target_sources(
           strfparse.cpp
           imageeffects.cpp
           beautifylayout.cpp
+          scrollstitch.cpp
 )
 
 IF (UNIX AND NOT APPLE)

@@ -93,6 +93,16 @@ void CaptureRequest::setRecordMode(RecordMode mode)
     m_recordMode = mode;
 }
 
+bool CaptureRequest::scrollCapture() const
+{
+    return m_scrollCapture;
+}
+
+void CaptureRequest::setScrollCapture(bool scrollCapture)
+{
+    m_scrollCapture = scrollCapture;
+}
+
 void CaptureRequest::setCaptureFirst(bool captureFirst)
 {
     m_captureFirst = captureFirst;

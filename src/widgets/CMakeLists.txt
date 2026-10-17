@@ -12,6 +12,7 @@ target_sources(
         capturetoast.h
         capturecountdown.h
         recordingcontrol.h
+        scrollcapturebar.h
         recordingeditor.h
         trimtimeline.h
         capturehistorywindow.h
@@ -50,6 +51,7 @@ target_sources(
         capturetoast.cpp
         capturecountdown.cpp
         recordingcontrol.cpp
+        scrollcapturebar.cpp
         recordingeditor.cpp
         trimtimeline.cpp
         capturehistorywindow.cpp

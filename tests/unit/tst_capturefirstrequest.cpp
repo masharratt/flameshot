@@ -144,6 +144,36 @@ private slots:
         QVERIFY(r.path().isEmpty());
     }
 
+    void scrollRequestPicksAreaOnly()
+    {
+        const CaptureRequest r = buildScrollCaptureRequest();
+        QCOMPARE(static_cast<int>(r.tasks()),
+                 static_cast<int>(CaptureRequest::ACCEPT_ON_SELECT));
+        QVERIFY(r.scrollCapture());
+        QCOMPARE(r.recordMode(), CaptureRequest::RecordNone);
+        QVERIFY(r.captureFirst());
+        QVERIFY(r.workflow().isEmpty());
+        QVERIFY(r.path().isEmpty());
+    }
+
+    void scrollResultRunsTheScreenshotWorkflow()
+    {
+        const CaptureRequest r =
+          buildScrollResultRequest(QRect(10, 20, 300, 4000), "/a", "/b");
+        QCOMPARE(r.workflow(), QStringLiteral("TAKE_SCREENSHOT"));
+        QCOMPARE(r.path(), QStringLiteral("/a"));
+        QCOMPARE(r.capturedGlobalRect(), QRect(10, 20, 300, 4000));
+        // The finished image must be exported, not sent back to the picker
+        QVERIFY(!r.scrollCapture());
+        QCOMPARE(r.recordMode(), CaptureRequest::RecordNone);
+    }
+
+    void ordinaryRequestsAreNotScrollRequests()
+    {
+        QVERIFY(!CaptureRequest(CaptureRequest::GRAPHICAL_MODE).scrollCapture());
+        QVERIFY(!buildRecordRequest(CaptureRequest::RecordMp4).scrollCapture());
+    }
+
     void ordinaryRequestsAreNotRecordRequests()
     {
         QCOMPARE(CaptureRequest(CaptureRequest::GRAPHICAL_MODE).recordMode(),

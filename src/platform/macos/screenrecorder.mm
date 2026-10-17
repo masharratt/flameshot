@@ -7,6 +7,7 @@
 
 #include "platform/screenrecorder.h"
 #include "core/recordinggeometry.h"
+#include "platform/macos/sckdisplay.h"
 
 #include <QCoreApplication>
 #include <QMetaObject>
@@ -127,53 +128,17 @@ API_AVAILABLE(macos(15.0))
               return;
           }
 
-          // The display holding most of the area
-          SCDisplay* display = nil;
-          CGFloat bestArea = 0;
-          for (SCDisplay* d in content.displays) {
-              CGRect inter = CGRectIntersection(d.frame, globalLogical);
-              CGFloat area = CGRectIsNull(inter)
-                               ? 0
-                               : inter.size.width * inter.size.height;
-              if (area > bestArea) {
-                  bestArea = area;
-                  display = d;
-              }
-          }
+          const SCKDisplayArea where = sckDisplayArea(content, globalLogical);
+          SCDisplay* display = where.display;
           if (display == nil) {
               onFailed(@"The selected area is not on a recordable display.");
               return;
           }
-
-          const CGRect area = CGRectIntersection(display.frame, globalLogical);
-          const QRect local = displayLocalRect(
-            QRect(qRound(area.origin.x),
-                  qRound(area.origin.y),
-                  qRound(area.size.width),
-                  qRound(area.size.height)),
-            QRect(qRound(display.frame.origin.x),
-                  qRound(display.frame.origin.y),
-                  qRound(display.frame.size.width),
-                  qRound(display.frame.size.height)));
-
-          double scale = 0;
-          for (NSScreen* screen in NSScreen.screens) {
-              NSNumber* number = screen.deviceDescription[@"NSScreenNumber"];
-              if (number.unsignedIntValue == display.displayID) {
-                  scale = screen.backingScaleFactor;
-                  break;
-              }
-          }
-
-          NSMutableArray<SCWindow*>* excluded = [NSMutableArray array];
-          for (SCWindow* w in content.windows) {
-              if ([excludeIds containsObject:@(w.windowID)]) {
-                  [excluded addObject:w];
-              }
-          }
-          SCContentFilter* filter =
-            [[SCContentFilter alloc] initWithDisplay:display
-                                    excludingWindows:excluded];
+          const QRect local = where.local;
+          double scale = where.scale;
+          SCContentFilter* filter = [[SCContentFilter alloc]
+               initWithDisplay:display
+              excludingWindows:sckWindowsWithIds(content, excludeIds)];
           if (scale <= 0) {
               scale = filter.pointPixelScale > 0 ? filter.pointPixelScale : 1.0;
           }

@@ -13,6 +13,8 @@ target_sources(flameshot PRIVATE
     recordingoptions.h
     recordingstate.h
     recordingedit.h
+    scrollcapturecontroller.h
+    scrollcapturestate.h
 )
 
 target_sources(flameshot PRIVATE
@@ -27,6 +29,8 @@ target_sources(flameshot PRIVATE
     recordingoptions.cpp
     recordingstate.cpp
     recordingedit.cpp
+    scrollcapturecontroller.cpp
+    scrollcapturestate.cpp
     flameshot.cpp
     flameshotdaemon.cpp
     hotkeyutils.cpp
