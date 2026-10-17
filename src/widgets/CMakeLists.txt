@@ -10,6 +10,7 @@ target_sources(
 
         capturelauncher.h
         capturetoast.h
+        capturecountdown.h
         recordingcontrol.h
         capturehistorywindow.h
         editorwindow.h
@@ -45,6 +46,7 @@ target_sources(
         PRIVATE
         capturelauncher.cpp
         capturetoast.cpp
+        capturecountdown.cpp
         recordingcontrol.cpp
         capturehistorywindow.cpp
         editorwindow.cpp

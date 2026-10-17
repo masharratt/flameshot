@@ -28,6 +28,11 @@ struct EffectSettings
     BackgroundMode backgroundMode = BackgroundMode::None;
     QColor backgroundColor1 = QColor(0x8B, 0x5C, 0xF6);
     QColor backgroundColor2 = QColor(0x3B, 0x82, 0xF6);
+    // 0 off, 1 square 1:1, 2 landscape 16:9, 3 portrait 9:16, 4 social 4:5,
+    // 5 classic 4:3. Grows the canvas (never crops) to the ratio.
+    int aspect = 0;
+    // Trim uneven near-uniform margins from the raw capture first
+    bool autoBalance = false;
 };
 
 namespace imageeffects {
@@ -46,15 +51,22 @@ QImage dropShadow(const QImage& src,
 
 // Canvas grows by 2 * padding (logical) on each axis, src is centered. With
 // BackgroundMode::None the padding is transparent. A background fills the whole
-// canvas, even when padding is 0.
+// canvas, even when padding is 0. A non-zero aspect (see EffectSettings) then
+// grows the canvas further to that ratio, src stays centered and unscaled.
 QImage addBackground(const QImage& src,
                      int padding,
                      BackgroundMode mode,
                      const QColor& color1,
-                     const QColor& color2);
+                     const QColor& color2,
+                     int aspect = 0);
 
-// Order: border, round corners, shadow, padding + background. Identity when
-// everything is off.
+// Makes margins even: on each axis the wider of the two near-uniform edge
+// margins is trimmed down to the narrower one (tolerance ~8 per channel, at
+// most 40% of the size per side, always at least 1px of content left).
+QImage autoBalance(const QImage& src);
+
+// Order: auto-balance, border, round corners, shadow, padding + background +
+// aspect. Identity when everything is off.
 QImage applyEffects(const QImage& src, const EffectSettings& settings);
 
 // True when the result can contain transparent pixels (a background fills

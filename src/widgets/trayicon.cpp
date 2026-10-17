@@ -335,13 +335,15 @@ void TrayIcon::startGuiCapture()
     ConfigHandler config;
     auto* widget =
       config.captureFirst()
-        ? Flameshot::instance()->gui(buildCaptureFirstRequest(
+        ? Flameshot::instance()->guiWithTimer(buildCaptureFirstRequest(
             QStringLiteral("TAKE_SCREENSHOT"),
             config.savePath(),
             QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)))
-        : Flameshot::instance()->gui();
+        : Flameshot::instance()->guiWithTimer();
 #if !defined(DISABLE_UPDATE_CHECKER)
-    FlameshotDaemon::instance()->showUpdateNotificationIfAvailable(widget);
+    if (widget != nullptr) {
+        FlameshotDaemon::instance()->showUpdateNotificationIfAvailable(widget);
+    }
 #endif
 }
 

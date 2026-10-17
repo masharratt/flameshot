@@ -50,6 +50,8 @@ private:
     QComboBox* m_background = nullptr;
     QPushButton* m_backgroundColor1 = nullptr;
     QPushButton* m_backgroundColor2 = nullptr;
+    QComboBox* m_aspect = nullptr;
+    QCheckBox* m_autoBalance = nullptr;
     QCheckBox* m_beautifyAlways = nullptr;
     QLabel* m_preview = nullptr;
 

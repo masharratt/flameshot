@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "core/capturedelay.h"
 #include "core/capturerequest.h"
 #include "widgets/capture/capturewidget.h"
 
@@ -52,6 +53,11 @@ public:
 
 public slots:
     CaptureWidget* gui(
+      const CaptureRequest& req = CaptureRequest::GRAPHICAL_MODE);
+    // Region capture started by a hotkey or the tray: waits for the capture
+    // timer (config captureDelaySec, shown as a countdown) before gui(). Returns
+    // the widget when it starts at once, nullptr while counting down.
+    CaptureWidget* guiWithTimer(
       const CaptureRequest& req = CaptureRequest::GRAPHICAL_MODE);
     void screen(CaptureRequest req, int const screenNumber = -1);
     void full(const CaptureRequest& req);
@@ -129,6 +135,7 @@ private:
     QPointer<CaptureLauncher> m_launcherWindow;
     QPointer<ConfigWindow> m_configWindow;
     RecordingController* m_recording = nullptr;
+    CountdownStateMachine m_countdown;
 
 #if defined(Q_OS_MACOS)
 public:

@@ -61,6 +61,61 @@ void boxBlur(QVector<float>& data, int w, int h, int radius, bool horizontal)
     }
 }
 
+constexpr int kBalanceTolerance = 8;
+constexpr double kMaxTrimFraction = 0.4;
+
+bool near(QRgb a, QRgb b)
+{
+    return std::abs(qRed(a) - qRed(b)) <= kBalanceTolerance &&
+           std::abs(qGreen(a) - qGreen(b)) <= kBalanceTolerance &&
+           std::abs(qBlue(a) - qBlue(b)) <= kBalanceTolerance &&
+           std::abs(qAlpha(a) - qAlpha(b)) <= kBalanceTolerance;
+}
+
+// Ratio width:height for the aspect presets, {0, 0} when off or unknown
+QSize aspectRatio(int aspect)
+{
+    switch (aspect) {
+        case 1:
+            return { 1, 1 };
+        case 2:
+            return { 16, 9 };
+        case 3:
+            return { 9, 16 };
+        case 4:
+            return { 4, 5 };
+        case 5:
+            return { 4, 3 };
+        default:
+            return {};
+    }
+}
+
+// Number of leading uniform lines (rows or columns) from one edge, limited
+// to maxCount. A line is uniform when every pixel is near the edge's first
+// pixel.
+int uniformMargin(const QImage& img, bool rows, bool fromStart, int maxCount)
+{
+    const int lines = rows ? img.height() : img.width();
+    const int length = rows ? img.width() : img.height();
+    auto pixelAt = [&](int line, int i) {
+        return rows ? img.pixel(i, line) : img.pixel(line, i);
+    };
+    const int first = fromStart ? 0 : lines - 1;
+    const QRgb ref = pixelAt(first, 0);
+    int count = 0;
+    while (count < maxCount) {
+        const int line = fromStart ? count : lines - 1 - count;
+        for (int i = 0; i < length; ++i) {
+            if (!near(pixelAt(line, i), ref)) {
+                return count;
+            }
+        }
+        ++count;
+    }
+    return count;
+}
+
 } // namespace
 
 namespace imageeffects {
@@ -172,16 +227,31 @@ QImage addBackground(const QImage& src,
                      int padding,
                      BackgroundMode mode,
                      const QColor& color1,
-                     const QColor& color2)
+                     const QColor& color2,
+                     int aspect)
 {
     const qreal dpr = src.devicePixelRatio();
     const int pad = std::max(0, scaled(padding, dpr));
-    if (src.isNull() || (pad == 0 && mode == BackgroundMode::None)) {
+    const QSize ratio = aspectRatio(aspect);
+    if (src.isNull() ||
+        (pad == 0 && mode == BackgroundMode::None && ratio.isEmpty())) {
         return src;
     }
+    int w = src.width() + 2 * pad;
+    int h = src.height() + 2 * pad;
+    if (!ratio.isEmpty()) {
+        // Grow the shorter axis, rounding up so the shot always fits
+        if (qint64(w) * ratio.height() < qint64(h) * ratio.width()) {
+            w = int((qint64(h) * ratio.width() + ratio.height() - 1) /
+                    ratio.height());
+        } else {
+            h = int((qint64(w) * ratio.height() + ratio.width() - 1) /
+                    ratio.width());
+        }
+    }
     const bool opaque = mode != BackgroundMode::None;
-    QImage out(src.width() + 2 * pad,
-               src.height() + 2 * pad,
+    QImage out(w,
+               h,
                opaque ? QImage::Format_RGB32
                       : QImage::Format_ARGB32_Premultiplied);
     if (mode == BackgroundMode::Gradient) {
@@ -195,15 +265,42 @@ QImage addBackground(const QImage& src,
     }
     {
         QPainter p(&out);
-        p.drawImage(pad, pad, physical(src));
+        p.drawImage((w - src.width()) / 2, (h - src.height()) / 2, physical(src));
     }
     out.setDevicePixelRatio(dpr);
     return out;
 }
 
+QImage autoBalance(const QImage& src)
+{
+    if (src.isNull()) {
+        return src;
+    }
+    const QImage plain = physical(src).convertToFormat(
+      QImage::Format_ARGB32);
+    // Trim amount for one axis: the wider margin shrinks to the narrower one
+    auto trims = [&](bool rows) {
+        const int size = rows ? plain.height() : plain.width();
+        const int cap = std::max(0, int(size * kMaxTrimFraction));
+        const int a = uniformMargin(plain, rows, true, cap);
+        const int b = uniformMargin(plain, rows, false, cap);
+        const int keep = std::min(a, b);
+        return std::pair<int, int>{ a - keep, b - keep };
+    };
+    const auto [top, bottom] = trims(true);
+    const auto [left, right] = trims(false);
+    if (top + bottom + left + right == 0) {
+        return src;
+    }
+    QImage out = src.copy(
+      left, top, src.width() - left - right, src.height() - top - bottom);
+    out.setDevicePixelRatio(src.devicePixelRatio());
+    return out;
+}
+
 QImage applyEffects(const QImage& src, const EffectSettings& settings)
 {
-    QImage out = src;
+    QImage out = settings.autoBalance ? autoBalance(src) : src;
     if (settings.borderPx > 0) {
         out = addBorder(out, settings.borderPx, settings.borderColor);
     }
@@ -218,7 +315,8 @@ QImage applyEffects(const QImage& src, const EffectSettings& settings)
                          settings.paddingPx,
                          settings.backgroundMode,
                          settings.backgroundColor1,
-                         settings.backgroundColor2);
+                         settings.backgroundColor2,
+                         settings.aspect);
 }
 
 bool needsAlpha(const EffectSettings& settings)
@@ -227,7 +325,7 @@ bool needsAlpha(const EffectSettings& settings)
         return false;
     }
     return settings.cornerRadius > 0 || settings.shadow ||
-           settings.paddingPx > 0;
+           settings.paddingPx > 0 || settings.aspect > 0;
 }
 
 } // namespace imageeffects

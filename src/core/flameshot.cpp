@@ -46,6 +46,7 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "config/configresolver.h"
 #include "config/configwindow.h"
 #include "core/actionrunner.h"
+#include "core/capturedelay.h"
 #include "core/capturefirstrequest.h"
 #include "core/hotkeyutils.h"
 #include "core/qguiappcurrentscreen.h"
@@ -63,6 +64,7 @@ constexpr const char* visibleInDockProperty = "_visibleInDock";
 #include "widgets/editorwindow.h"
 #include "widgets/capturehistorywindow.h"
 #include "widgets/capturelauncher.h"
+#include "widgets/capturecountdown.h"
 #include "widgets/capturetoast.h"
 #include "widgets/editedthumbnail.h"
 #include "widgets/infowindow.h"
@@ -273,12 +275,12 @@ void Flameshot::onHotkeyActivated(const QString& name)
     // A hotkey with a workflow always runs its actions; TAKE_SCREENSHOT keeps
     // honouring the capture-first switch.
     if (name == QLatin1String("CAPTURE_AND_EDIT") || config.captureFirst()) {
-        gui(buildCaptureFirstRequest(
+        guiWithTimer(buildCaptureFirstRequest(
           name,
           config.savePath(),
           QStandardPaths::writableLocation(QStandardPaths::PicturesLocation)));
     } else {
-        gui();
+        guiWithTimer();
     }
 }
 #endif
@@ -295,6 +297,45 @@ Flameshot* Flameshot::instance()
 {
     static Flameshot c;
     return &c;
+}
+
+namespace {
+// Time for the window server to drop the countdown before the screen is grabbed
+const int kCountdownHideMs = 150;
+} // namespace
+
+CaptureWidget* Flameshot::guiWithTimer(const CaptureRequest& req)
+{
+    const int seconds = static_cast<int>(
+      captureDelayMs(req.delay(), ConfigHandler().captureDelaySec()) / 1000);
+    if (seconds <= 0 || req.delay() > 0) {
+        // No timer configured, or the request carries its own delay
+        return gui(req);
+    }
+    // A second press while counting must not start another countdown
+    if (!m_countdown.transition(CountdownState::Counting)) {
+        return nullptr;
+    }
+    auto* countdown = new CaptureCountdown(seconds);
+    connect(countdown, &CaptureCountdown::cancelled, this, [this, countdown]() {
+        m_countdown.transition(CountdownState::Cancelled);
+        countdown->close();
+        countdown->deleteLater();
+        m_countdown.transition(CountdownState::Idle);
+    });
+    connect(
+      countdown, &CaptureCountdown::finished, this, [this, countdown, req]() {
+          m_countdown.transition(CountdownState::Capturing);
+          // Remove the countdown from the screen before the grab
+          countdown->close();
+          countdown->deleteLater();
+          QTimer::singleShot(kCountdownHideMs, this, [this, req]() {
+              gui(req);
+              m_countdown.transition(CountdownState::Idle);
+          });
+      });
+    countdown->start();
+    return nullptr;
 }
 
 CaptureWidget* Flameshot::gui(const CaptureRequest& req)

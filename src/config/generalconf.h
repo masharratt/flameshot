@@ -37,6 +37,7 @@ private slots:
     void saveLastRegion(bool checked);
     void captureFirst(bool checked);
     void hoverWindowDetection(bool checked);
+    void captureDelaySec(int seconds);
     void captureToastSeconds(int seconds);
     void editedThumbnailSeconds(int seconds);
     void captureHistoryMax(int max);
@@ -111,6 +112,7 @@ private:
     void initSaveLastRegion();
     void initCaptureFirst();
     void initHoverWindowDetection();
+    void initCaptureDelaySec();
     void initCaptureToastSeconds();
     void initEditedThumbnailSeconds();
     void initCaptureHistoryMax();
@@ -154,6 +156,7 @@ private:
     QCheckBox* m_saveLastRegion;
     QCheckBox* m_captureFirst;
     QCheckBox* m_hoverWindowDetection;
+    QSpinBox* m_captureDelaySec;
     QSpinBox* m_captureToastSeconds;
     QSpinBox* m_editedThumbnailSeconds;
     QSpinBox* m_captureHistoryMax;

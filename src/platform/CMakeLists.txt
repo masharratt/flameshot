@@ -15,6 +15,8 @@ if (APPLE)
         macos/gifencoder.mm
         macos/videothumbnail.mm
         macos/windowspace_mac.mm
+        macos/textrecognition.h
+        macos/textrecognition.mm
     )
     # ARC for every Objective-C++ file. A set_source_files_properties() call
     # here would not reach the flameshot target, which is defined in another
@@ -32,6 +34,7 @@ if (APPLE)
         "-framework CoreVideo"
         "-framework ImageIO"
         "-framework UniformTypeIdentifiers"
+        "-framework Vision"
         "-weak_framework ScreenCaptureKit"
     )
 else ()

@@ -53,6 +53,7 @@ public:
         TYPE_CANCEL = 24,
         TYPE_RULER = 25,
         TYPE_BEAUTIFY = 26,
+        TYPE_OCR = 27,
     };
     Q_ENUM(Type);
 

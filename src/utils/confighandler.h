@@ -143,6 +143,7 @@ public:
     CONFIG_GETTER_SETTER(saveLastRegion, setSaveLastRegion, bool)
     CONFIG_GETTER_SETTER(captureFirst, setCaptureFirst, bool)
     CONFIG_GETTER_SETTER(hoverWindowDetection, setHoverWindowDetection, bool)
+    CONFIG_GETTER_SETTER(captureDelaySec, setCaptureDelaySec, int)
     CONFIG_GETTER_SETTER(captureToastSeconds, setCaptureToastSeconds, int)
     CONFIG_GETTER_SETTER(editedThumbnailSeconds, setEditedThumbnailSeconds, int)
     CONFIG_GETTER_SETTER(effectBorderPx, setEffectBorderPx, int)
@@ -153,6 +154,8 @@ public:
     CONFIG_GETTER_SETTER(effectBackground, setEffectBackground, int)
     CONFIG_GETTER_SETTER(effectBackgroundColor1, setEffectBackgroundColor1, QColor)
     CONFIG_GETTER_SETTER(effectBackgroundColor2, setEffectBackgroundColor2, QColor)
+    CONFIG_GETTER_SETTER(effectAspect, setEffectAspect, int)
+    CONFIG_GETTER_SETTER(effectAutoBalance, setEffectAutoBalance, bool)
     CONFIG_GETTER_SETTER(beautifyAlways, setBeautifyAlways, bool)
 
     // All effect options as one value, the single place that reads them

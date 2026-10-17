@@ -1,6 +1,6 @@
 # Feature Status (masharratt/flameshot fork)
 
-**Last Updated:** 2026-10-16 (added Beautify background, padding and toolbar button)
+**Last Updated:** 2026-10-16 (added Beautify size presets, capture timer and Copy Text)
 
 | Token | Meaning |
 |-------|---------|
@@ -23,6 +23,9 @@ Plan: `planning/PLAN_sharex_fork.md` (local, not committed).
 | Per-hotkey after-capture actions | beta | TAKE_SCREENSHOT and CAPTURE_AND_EDIT each run a configurable action list (save, copy image, copy path, open editor, pin, effects, toast) set on the Workflows tab. Hotkeys re-register live when changed. | Capture-first workflow | Not yet checked by hand. |
 | Image effects | beta | Border, rounded corners and drop shadow applied by the Apply Effects action, configured with a live preview on the Workflows tab. | Per-hotkey actions | Not yet checked by hand. Effects needing transparency save as PNG only on the workflow save path. |
 | Beautify | dev | Toolbar button and "Beautify every capture" option add a gradient or solid background, padding and shadow to the exported image. Configured on the Workflows tab. | Image effects | Not yet checked by hand. Save dialog path ignores the JPEG to PNG switch. |
+| Beautify size presets | dev | Option `effectAspect` grows the Beautify canvas to 1:1, 16:9, 9:16, 4:5 or 4:3 without cropping; `effectAutoBalance` first trims uneven blank margins from the capture. Set on the Workflows tab. | Beautify | Not yet checked by hand. |
+| Capture timer | dev | Option `captureDelaySec` (0 to 10) shows a countdown before hotkey and tray region captures start. Click the countdown to cancel. CLI --delay wins; recordings are not delayed. | Capture overlay | Not yet checked by hand. |
+| Copy Text (OCR) | dev | Toolbar button reads the text and any QR code in the selection with Apple Vision, copies it to the clipboard and closes the capture. | macOS Vision framework | Not yet checked by hand. macOS only, hidden elsewhere. QR path has no automated test. |
 | Ruler tool | beta | Editor tool that draws a measured line labelled with length and width x height in physical pixels. | Tool system | Not yet checked by hand in the running app. |
 | GIF / MP4 recording | dev | RECORD_MP4 and RECORD_GIF hotkeys (and tray items) pick an area, record it with ScreenCaptureKit, and save MP4 or GIF with a history entry and toast. Options `gifFps`, `gifMaxWidth` on the Workflows tab. | macOS 15+, ScreenCaptureKit, AVFoundation, ImageIO | GIF verified by hand once; MP4 not yet. macOS 15+ only, hidden elsewhere. No audio. |
 | Expand canvas | beta | Editor toolbar button that adds 40 pt of white space on every side so you can draw outside the image; drawings move with the image and Cmd+Z undoes it. | Windowed editor | Window grows but does not shrink on undo. Shortcut E. |

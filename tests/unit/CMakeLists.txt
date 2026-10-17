@@ -37,3 +37,13 @@ flameshot_add_unit_test(tst_editorsettings SOURCES widgets/editorsettings.cpp)
 flameshot_add_unit_test(tst_curvemath SOURCES tools/curvemath.cpp)
 flameshot_add_unit_test(tst_editorvisibility SOURCES widgets/editorvisibility.cpp)
 flameshot_add_unit_test(tst_thumbnailgesture SOURCES widgets/thumbnailgesture.cpp)
+flameshot_add_unit_test(tst_capturedelay SOURCES core/capturedelay.cpp)
+
+if(APPLE)
+  # Vision text recognition (Objective-C++, ARC)
+  flameshot_add_unit_test(tst_textrecognition
+    SOURCES platform/macos/textrecognition.mm
+    LIBS "-framework Vision" "-framework CoreGraphics" "-framework Foundation")
+  target_compile_options(tst_textrecognition PRIVATE
+    $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>)
+endif()

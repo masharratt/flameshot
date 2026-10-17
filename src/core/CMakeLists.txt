@@ -1,6 +1,7 @@
 target_sources(flameshot PRIVATE
     actionlist.h
     actionrunner.h
+    capturedelay.h
     capturefirstrequest.h
     flameshot.h
     hotkeyutils.h
@@ -15,6 +16,7 @@ target_sources(flameshot PRIVATE
 target_sources(flameshot PRIVATE
     actionlist.cpp
     actionrunner.cpp
+    capturedelay.cpp
     capturefirstrequest.cpp
     capturerequest.cpp
     gifplan.cpp

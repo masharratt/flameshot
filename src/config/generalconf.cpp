@@ -47,6 +47,7 @@ GeneralConf::GeneralConf(QWidget* parent)
     initSaveLastRegion();
     initCaptureFirst();
     initHoverWindowDetection();
+    initCaptureDelaySec();
     initCaptureToastSeconds();
     initEditedThumbnailSeconds();
     initCaptureHistoryMax();
@@ -120,6 +121,7 @@ void GeneralConf::_updateComponents(bool allowEmptySavePath)
     m_saveLastRegion->setChecked(config.saveLastRegion());
     m_captureFirst->setChecked(config.captureFirst());
     m_hoverWindowDetection->setChecked(config.hoverWindowDetection());
+    m_captureDelaySec->setValue(config.captureDelaySec());
     m_captureToastSeconds->setValue(config.captureToastSeconds());
     m_editedThumbnailSeconds->setValue(config.editedThumbnailSeconds());
     m_captureHistoryMax->setValue(config.captureHistoryMax());
@@ -158,6 +160,11 @@ void GeneralConf::updateComponents()
 void GeneralConf::saveLastRegion(bool checked)
 {
     ConfigHandler().setSaveLastRegion(checked);
+}
+
+void GeneralConf::captureDelaySec(int seconds)
+{
+    ConfigHandler().setCaptureDelaySec(seconds);
 }
 
 void GeneralConf::captureFirst(bool checked)
@@ -399,6 +406,33 @@ void GeneralConf::initCaptureToastSeconds()
             &GeneralConf::captureToastSeconds);
 
     vboxLayout->addWidget(m_captureToastSeconds);
+}
+
+void GeneralConf::initCaptureDelaySec()
+{
+    auto* box = new QGroupBox(tr("Capture timer (seconds)"));
+    box->setFlat(true);
+    box->setToolTip(tr("Wait this long, with a countdown, before the hotkey "
+                       "and tray icon start a region capture. 0 starts "
+                       "immediately. Recordings are not delayed."));
+    m_layout->addWidget(box);
+
+    auto* vboxLayout = new QVBoxLayout();
+    box->setLayout(vboxLayout);
+
+    m_captureDelaySec = new QSpinBox(this);
+    m_captureDelaySec->setMinimum(0);
+    m_captureDelaySec->setMaximum(10);
+    QString foreground = this->palette().windowText().color().name();
+    m_captureDelaySec->setStyleSheet(
+      QStringLiteral("color: %1").arg(foreground));
+
+    connect(m_captureDelaySec,
+            static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+            this,
+            &GeneralConf::captureDelaySec);
+
+    vboxLayout->addWidget(m_captureDelaySec);
 }
 
 void GeneralConf::initEditedThumbnailSeconds()

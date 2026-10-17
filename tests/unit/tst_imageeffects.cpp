@@ -5,6 +5,8 @@
 
 #include <QImage>
 #include <QTest>
+#include <algorithm>
+#include <cmath>
 
 namespace {
 
@@ -224,6 +226,116 @@ private slots:
         QVERIFY(imageeffects::needsAlpha(s));
         s.backgroundMode = BackgroundMode::Gradient;
         QVERIFY(!imageeffects::needsAlpha(s));
+    }
+
+    void aspectRatiosAreExactAndKeepShot_data()
+    {
+        QTest::addColumn<int>("aspect");
+        QTest::addColumn<int>("rw");
+        QTest::addColumn<int>("rh");
+        QTest::newRow("square") << 1 << 1 << 1;
+        QTest::newRow("landscape") << 2 << 16 << 9;
+        QTest::newRow("portrait") << 3 << 9 << 16;
+        QTest::newRow("social") << 4 << 4 << 5;
+        QTest::newRow("classic") << 5 << 4 << 3;
+    }
+
+    void aspectRatiosAreExactAndKeepShot()
+    {
+        QFETCH(int, aspect);
+        QFETCH(int, rw);
+        QFETCH(int, rh);
+        const QImage src = solid(200, 120, QColor(10, 200, 30));
+        EffectSettings s;
+        s.paddingPx = 10;
+        s.backgroundMode = BackgroundMode::Solid;
+        s.backgroundColor1 = QColor(255, 0, 0);
+        s.aspect = aspect;
+        const QImage out = imageeffects::applyEffects(src, s);
+        QVERIFY2(out.width() >= 220 && out.height() >= 140,
+                 qPrintable(QString("%1x%2").arg(out.width()).arg(out.height())));
+        QVERIFY2(std::abs(out.width() * rh - out.height() * rw) <=
+                   std::max(rw, rh),
+                 qPrintable(QString("%1x%2").arg(out.width()).arg(out.height())));
+        // Shot is unscaled and centered: its center pixel and size survive
+        QCOMPARE(out.pixelColor(out.width() / 2, out.height() / 2),
+                 QColor(10, 200, 30));
+        QCOMPARE(out.pixelColor(0, 0), QColor(255, 0, 0));
+    }
+
+    void aspectOffLeavesSizeAlone()
+    {
+        const QImage src = solid(200, 120, Qt::white);
+        EffectSettings s;
+        s.paddingPx = 10;
+        s.backgroundMode = BackgroundMode::Solid;
+        QCOMPARE(imageeffects::applyEffects(src, s).size(), QSize(220, 140));
+    }
+
+    void aspectWithoutBackgroundExpandsTransparent()
+    {
+        const QImage src = solid(200, 100, Qt::white);
+        EffectSettings s;
+        s.aspect = 1;
+        const QImage out = imageeffects::applyEffects(src, s);
+        QCOMPARE(out.size(), QSize(200, 200));
+        QCOMPARE(out.pixelColor(0, 0).alpha(), 0);
+        QCOMPARE(out.pixelColor(100, 100), QColor(Qt::white));
+        QVERIFY(imageeffects::needsAlpha(s));
+    }
+
+    void autoBalanceTrimsToEqualMargins()
+    {
+        // 100x60 canvas: content 60x40 with 30px white margin left, 5px right
+        QImage src = solid(100, 60, Qt::white);
+        for (int y = 10; y < 50; ++y) {
+            for (int x = 30; x < 95; ++x) {
+                src.setPixelColor(x, y, QColor(20, 40, 200));
+            }
+        }
+        const QImage out = imageeffects::autoBalance(src);
+        // Margins end up equal horizontally (5px each side) and vertically
+        QCOMPARE(out.size(), QSize(75, 40 + 2 * 10));
+        QCOMPARE(out.pixelColor(0, 30), QColor(Qt::white));
+        QCOMPARE(out.pixelColor(5, 30), QColor(20, 40, 200));
+        QCOMPARE(out.pixelColor(out.width() - 6, 30), QColor(20, 40, 200));
+        QCOMPARE(out.pixelColor(out.width() - 1, 30), QColor(Qt::white));
+    }
+
+    void autoBalanceLeavesNoMarginImageUnchanged()
+    {
+        // Content reaches every edge, so there is no margin to trim
+        QImage src = solid(50, 40, QColor(20, 40, 200));
+        for (int i = 0; i < 40; ++i) {
+            src.setPixelColor(0, i, Qt::white);
+            src.setPixelColor(25, i, Qt::red);
+        }
+        for (int i = 0; i < 50; ++i) {
+            src.setPixelColor(i, 0, Qt::yellow);
+            src.setPixelColor(i, 39, Qt::green);
+        }
+        QCOMPARE(imageeffects::autoBalance(src), src);
+    }
+
+    void autoBalanceNeverTrimsMoreThanFortyPercentPerSide()
+    {
+        const QImage src = solid(100, 100, Qt::white); // all margin
+        const QImage out = imageeffects::autoBalance(src);
+        QVERIFY(out.width() >= 20 && out.height() >= 20);
+        QVERIFY(!out.isNull());
+    }
+
+    void autoBalanceRunsFirstInApplyEffects()
+    {
+        QImage src = solid(100, 60, Qt::white);
+        for (int y = 10; y < 50; ++y) {
+            for (int x = 30; x < 95; ++x) {
+                src.setPixelColor(x, y, QColor(20, 40, 200));
+            }
+        }
+        EffectSettings s;
+        s.autoBalance = true;
+        QCOMPARE(imageeffects::applyEffects(src, s).size(), QSize(75, 60));
     }
 };
 

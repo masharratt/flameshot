@@ -106,6 +106,7 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("saveLastRegion"              ,Bool               ( false         )),
     OPTION("captureFirst"                ,Bool               ( true          )),
     OPTION("hoverWindowDetection"        ,Bool               ( true          )),
+    OPTION("captureDelaySec"             ,BoundedInt         ( 0, 10, 0      )),
     OPTION("captureToastSeconds"         ,LowerBoundedInt    ( 0, 6          )),
     OPTION("editedThumbnailSeconds"      ,LowerBoundedInt    ( 0, kEditedThumbnailDefaultSeconds )),
     OPTION("effectBorderPx"              ,BoundedInt         ( 0, 100, 0     )),
@@ -116,6 +117,8 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("effectBackground"            ,BoundedInt         ( 0, 2, 2       )),
     OPTION("effectBackgroundColor1"      ,Color              ( QColor(0x8B, 0x5C, 0xF6) )),
     OPTION("effectBackgroundColor2"      ,Color              ( QColor(0x3B, 0x82, 0xF6) )),
+    OPTION("effectAspect"                ,BoundedInt         ( 0, 5, 0       )),
+    OPTION("effectAutoBalance"           ,Bool               ( false         )),
     OPTION("beautifyAlways"              ,Bool               ( false         )),
     OPTION("captureHistoryMax"           ,LowerBoundedInt    ( 1, 500        )),
     OPTION("gifFps"                      ,BoundedInt         ( 1, 50, 15     )),
@@ -232,6 +235,7 @@ static QMap<QString, QSharedPointer<KeySequence>> recognizedShortcuts = {
     SHORTCUT("RECORD_GIF"               ,                           ),
     SHORTCUT("TYPE_PIN"                 ,                           ),
     SHORTCUT("TYPE_BEAUTIFY"            ,                           ),
+    SHORTCUT("TYPE_OCR"                 ,                           ),
     SHORTCUT("TYPE_SIZEINCREASE"        ,                           ),
     SHORTCUT("TYPE_SIZEDECREASE"        ,                           ),
     SHORTCUT("TYPE_CIRCLECOUNT"         ,                           ),
@@ -251,6 +255,8 @@ EffectSettings ConfigHandler::effectSettings()
     settings.backgroundMode = static_cast<BackgroundMode>(effectBackground());
     settings.backgroundColor1 = effectBackgroundColor1();
     settings.backgroundColor2 = effectBackgroundColor2();
+    settings.aspect = effectAspect();
+    settings.autoBalance = effectAutoBalance();
     return settings;
 }
 

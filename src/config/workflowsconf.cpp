@@ -123,6 +123,18 @@ void WorkflowsConf::addEffectsGroup()
     m_backgroundColor2 = new QPushButton(box);
     form->addRow(tr("Gradient end color"), m_backgroundColor2);
 
+    m_aspect = new QComboBox(box);
+    m_aspect->addItem(tr("Off"), 0);
+    m_aspect->addItem(tr("Square 1:1"), 1);
+    m_aspect->addItem(tr("Landscape 16:9"), 2);
+    m_aspect->addItem(tr("Portrait 9:16"), 3);
+    m_aspect->addItem(tr("Social 4:5"), 4);
+    m_aspect->addItem(tr("Classic 4:3"), 5);
+    form->addRow(tr("Size preset"), m_aspect);
+
+    m_autoBalance = new QCheckBox(tr("Auto-balance margins"), box);
+    form->addRow(QString(), m_autoBalance);
+
     m_beautifyAlways = new QCheckBox(tr("Beautify every capture"), box);
     form->addRow(QString(), m_beautifyAlways);
     boxLayout->addLayout(form);
@@ -147,6 +159,14 @@ void WorkflowsConf::addEffectsGroup()
             &WorkflowsConf::onEffectChanged);
     connect(m_background,
             QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            &WorkflowsConf::onEffectChanged);
+    connect(m_aspect,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this,
+            &WorkflowsConf::onEffectChanged);
+    connect(m_autoBalance,
+            &QCheckBox::toggled,
             this,
             &WorkflowsConf::onEffectChanged);
     connect(m_beautifyAlways,
@@ -247,6 +267,8 @@ void WorkflowsConf::onEffectChanged()
     config.setEffectBackground(m_background->currentData().toInt());
     config.setEffectBackgroundColor1(m_backgroundColor1Value);
     config.setEffectBackgroundColor2(m_backgroundColor2Value);
+    config.setEffectAspect(m_aspect->currentData().toInt());
+    config.setEffectAutoBalance(m_autoBalance->isChecked());
     config.setBeautifyAlways(m_beautifyAlways->isChecked());
     updatePreview();
 }
@@ -289,6 +311,8 @@ void WorkflowsConf::updatePreview()
       static_cast<BackgroundMode>(m_background->currentData().toInt());
     settings.backgroundColor1 = m_backgroundColor1Value;
     settings.backgroundColor2 = m_backgroundColor2Value;
+    settings.aspect = m_aspect->currentData().toInt();
+    settings.autoBalance = m_autoBalance->isChecked();
     // Large paddings would overflow the box, so fit the result into it
     m_preview->setPixmap(
       QPixmap::fromImage(imageeffects::applyEffects(sample, settings))
@@ -335,6 +359,9 @@ void WorkflowsConf::updateComponents()
       std::max(0, m_background->findData(config.effectBackground())));
     m_backgroundColor1Value = config.effectBackgroundColor1();
     m_backgroundColor2Value = config.effectBackgroundColor2();
+    m_aspect->setCurrentIndex(
+      std::max(0, m_aspect->findData(config.effectAspect())));
+    m_autoBalance->setChecked(config.effectAutoBalance());
     m_beautifyAlways->setChecked(config.beautifyAlways());
     for (auto it = m_recordShortcuts.begin(); it != m_recordShortcuts.end();
          ++it) {

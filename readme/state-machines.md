@@ -1,6 +1,6 @@
 # State Machines
 
-**Last Updated:** 2026-10-07 (screen recording lifecycle)
+**Last Updated:** 2026-10-16 (capture timer lifecycle)
 
 ## 1. Capture Overlay
 
@@ -94,5 +94,39 @@ stateDiagram-v2
   Converting --> Failed
   Done --> Idle
   Failed --> Idle
+  Cancelled --> Idle
+```
+
+## 3. Capture Timer
+
+**Source:** `src/core/capturedelay.h` (`CountdownState`, `CountdownStateMachine`), driven by `Flameshot::guiWithTimer` in `src/core/flameshot.cpp`.
+
+### States
+| State | Meaning |
+|-------|---------|
+| Idle | No countdown running. |
+| Counting | Countdown shown, waiting for the configured seconds. |
+| Capturing | Countdown removed, capture overlay opening. |
+| Cancelled | User clicked the countdown. |
+
+### Transitions
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| Idle | Counting | Hotkey or tray region capture | `captureDelaySec` > 0 and request has no delay of its own |
+| Counting | Capturing | Countdown reaches zero | none |
+| Counting | Cancelled | Click on the countdown | none |
+| Capturing | Idle | Overlay opened | none |
+| Cancelled | Idle | Countdown closed | none |
+
+A second hotkey press while Counting is ignored.
+
+### Diagram
+```mermaid
+stateDiagram-v2
+  [*] --> Idle
+  Idle --> Counting
+  Counting --> Capturing
+  Counting --> Cancelled
+  Capturing --> Idle
   Cancelled --> Idle
 ```
