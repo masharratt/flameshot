@@ -51,6 +51,7 @@ API_AVAILABLE(macos(15.0))
 - (void)startWithRect:(CGRect)globalLogical
              tempPath:(NSString*)tempPath
            excludeIds:(NSArray<NSNumber*>*)excludeIds
+           showClicks:(BOOL)showClicks
             onStarted:(void (^)(void))onStarted
              onFailed:(void (^)(NSString* error))onFailed;
 - (void)stopWithDone:(void (^)(BOOL ok, NSString* path))done;
@@ -108,6 +109,7 @@ API_AVAILABLE(macos(15.0))
 - (void)startWithRect:(CGRect)globalLogical
              tempPath:(NSString*)tempPath
            excludeIds:(NSArray<NSNumber*>*)excludeIds
+           showClicks:(BOOL)showClicks
             onStarted:(void (^)(void))onStarted
              onFailed:(void (^)(NSString* error))onFailed
 {
@@ -184,6 +186,12 @@ API_AVAILABLE(macos(15.0))
           config.height = static_cast<size_t>(pixels.height());
           config.minimumFrameInterval = CMTimeMake(1, 30);
           config.showsCursor = YES;
+          // Native click indicators; the property is missing before macOS 15,
+          // where the recording just has no highlights.
+          if (showClicks && [config respondsToSelector:@selector(
+                                                         setShowMouseClicks:)]) {
+              config.showMouseClicks = YES;
+          }
           config.pixelFormat = kCVPixelFormatType_32BGRA;
 
           SCRecordingOutputConfiguration* outConfig =
@@ -296,6 +304,7 @@ public:
     void start(const QRect& rect,
                const QString& tempPath,
                const QList<quint32>& excludeWindowIds,
+               const RecordingOptions& options,
                std::function<void(QString error)> onFailed,
                std::function<void()> onStarted) override
     {
@@ -312,6 +321,7 @@ public:
                                            rect.height())
                        tempPath:toNSString(tempPath)
                      excludeIds:ids
+                     showClicks:options.showClicks ? YES : NO
                       onStarted:^{
                           postToMain([onStarted]() {
                               if (onStarted) {

@@ -231,6 +231,15 @@ void WorkflowsConf::addRecordingGroup()
     form->addRow(tr("GIF maximum width"), m_gifMaxWidth);
     boxLayout->addLayout(form);
 
+    m_recordShowClicks = new QCheckBox(tr("Highlight mouse clicks"), box);
+    m_recordShowClicks->setToolTip(
+      tr("Draw a ring where the mouse is clicked. Needs macOS 15 or newer."));
+    boxLayout->addWidget(m_recordShowClicks);
+    connect(m_recordShowClicks,
+            &QCheckBox::toggled,
+            this,
+            &WorkflowsConf::onRecordingChanged);
+
     connect(m_gifFps,
             QOverload<int>::of(&QSpinBox::valueChanged),
             this,
@@ -251,6 +260,7 @@ void WorkflowsConf::onRecordingChanged()
     ConfigHandler config;
     config.setGifFps(m_gifFps->value());
     config.setGifMaxWidth(m_gifMaxWidth->value());
+    config.setRecordShowClicks(m_recordShowClicks->isChecked());
 }
 
 void WorkflowsConf::onEffectChanged()
@@ -376,6 +386,7 @@ void WorkflowsConf::updateComponents()
     if (m_gifFps != nullptr) {
         m_gifFps->setValue(config.gifFps());
         m_gifMaxWidth->setValue(config.gifMaxWidth());
+        m_recordShowClicks->setChecked(config.recordShowClicks());
     }
     m_updating = false;
     updatePreview();

@@ -112,6 +112,7 @@ void RecordingController::begin()
       m_rect,
       m_tempPath,
       exclude,
+      recordingOptionsFor(ConfigHandler().recordShowClicks()),
       [this](QString error) { fail(error); },
       [this]() {
           if (m_machine.transition(RecState::Recording) && m_control) {

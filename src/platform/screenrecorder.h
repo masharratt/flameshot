@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "core/recordingoptions.h"
+
 #include <QList>
 #include <QRect>
 #include <QString>
@@ -33,6 +35,7 @@ public:
     virtual void start(const QRect& globalLogicalRect,
                        const QString& tempPath,
                        const QList<quint32>& excludeWindowIds,
+                       const RecordingOptions& options,
                        std::function<void(QString error)> onFailed,
                        std::function<void()> onStarted = {}) = 0;
     // Finishes the file. done gets ok = false when it could not be finalised.

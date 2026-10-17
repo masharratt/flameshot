@@ -10,6 +10,7 @@ target_sources(flameshot PRIVATE
     gifplan.h
     recordingcontroller.h
     recordinggeometry.h
+    recordingoptions.h
     recordingstate.h
 )
 
@@ -22,6 +23,7 @@ target_sources(flameshot PRIVATE
     gifplan.cpp
     recordingcontroller.cpp
     recordinggeometry.cpp
+    recordingoptions.cpp
     recordingstate.cpp
     flameshot.cpp
     flameshotdaemon.cpp

@@ -59,6 +59,7 @@ private:
     QMap<QString, QLabel*> m_recordShortcuts;
     QSpinBox* m_gifFps = nullptr;
     QSpinBox* m_gifMaxWidth = nullptr;
+    QCheckBox* m_recordShowClicks = nullptr;
     QColor m_borderColorValue;
     QColor m_backgroundColor1Value;
     QColor m_backgroundColor2Value;

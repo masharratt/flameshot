@@ -1,6 +1,6 @@
 # Feature Status (masharratt/flameshot fork)
 
-**Last Updated:** 2026-10-16 (added Beautify size presets, capture timer and Copy Text)
+**Last Updated:** 2026-10-16 (added recording click highlights)
 
 | Token | Meaning |
 |-------|---------|
@@ -27,7 +27,7 @@ Plan: `planning/PLAN_sharex_fork.md` (local, not committed).
 | Capture timer | dev | Option `captureDelaySec` (0 to 10) shows a countdown before hotkey and tray region captures start. Click the countdown to cancel. CLI --delay wins; recordings are not delayed. | Capture overlay | Not yet checked by hand. |
 | Copy Text (OCR) | dev | Toolbar button reads the text and any QR code in the selection with Apple Vision, copies it to the clipboard and closes the capture. | macOS Vision framework | Not yet checked by hand. macOS only, hidden elsewhere. QR path has no automated test. |
 | Ruler tool | beta | Editor tool that draws a measured line labelled with length and width x height in physical pixels. | Tool system | Not yet checked by hand in the running app. |
-| GIF / MP4 recording | dev | RECORD_MP4 and RECORD_GIF hotkeys (and tray items) pick an area, record it with ScreenCaptureKit, and save MP4 or GIF with a history entry and toast. Options `gifFps`, `gifMaxWidth` on the Workflows tab. | macOS 15+, ScreenCaptureKit, AVFoundation, ImageIO | GIF verified by hand once; MP4 not yet. macOS 15+ only, hidden elsewhere. No audio. |
+| GIF / MP4 recording | dev | RECORD_MP4 and RECORD_GIF hotkeys (and tray items) pick an area, record it with ScreenCaptureKit, and save MP4 or GIF with a history entry and toast. Options `gifFps`, `gifMaxWidth`, `recordShowClicks` (click rings, default on) on the Workflows tab. | macOS 15+, ScreenCaptureKit, AVFoundation, ImageIO | GIF verified by hand once; MP4 and click rings not yet. macOS 15+ only, hidden elsewhere. No audio. |
 | Expand canvas | beta | Editor toolbar button that adds 40 pt of white space on every side so you can draw outside the image; drawings move with the image and Cmd+Z undoes it. | Windowed editor | Window grows but does not shrink on undo. Shortcut E. |
 | Editor settings bar | beta | Second toolbar row in the windowed editor with colour swatches from the user palette, a custom colour button and a size slider, kept in sync with all other ways of changing them. | Windowed editor | Every size change is saved as the new default. |
 | Bendable arrows and lines | beta | Arrows and lines show a midpoint handle; dragging it bends them into a smooth curve with the arrowhead following the tangent. Undoable. | Tool system | None known. |

@@ -123,6 +123,7 @@ static QMap<class QString, QSharedPointer<ValueHandler>>
     OPTION("captureHistoryMax"           ,LowerBoundedInt    ( 1, 500        )),
     OPTION("gifFps"                      ,BoundedInt         ( 1, 50, 15     )),
     OPTION("gifMaxWidth"                 ,BoundedInt         ( 120, 3840, 960)),
+    OPTION("recordShowClicks"            ,Bool               ( true          )),
     OPTION("actionsTakeScreenshot"       ,ActionList         ( "TAKE_SCREENSHOT"  )),
     OPTION("actionsCaptureAndEdit"       ,ActionList         ( "CAPTURE_AND_EDIT" )),
     OPTION("uploadHistoryMax"            ,LowerBoundedInt    ( 0, 25         )),
