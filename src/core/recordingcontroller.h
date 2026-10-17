@@ -36,13 +36,23 @@ public:
     // The overlay closed without an area
     void pickAbandoned();
 
+    // Next free file name in the save folder for this extension
+    static QString nextOutputPath(const QString& extension);
+    // Removes editSource when it is a temp file (not the saved path)
+    static void discardEditSource(const QString& editSource,
+                                  const QString& savedPath);
+
 signals:
     // Ask for the area picker to open
     void pickRequested(CaptureRequest::RecordMode mode);
-    // kind is "mp4" or "gif"; size is in pixels
+    // kind is "mp4" or "gif"; size is in pixels. editSource is the MP4 the
+    // "Edit recording" window works from: the saved file itself for an MP4,
+    // the kept temp recording for a GIF. Whoever ends up holding a source
+    // that differs from path removes it with discardEditSource().
     void recordingSaved(const QString& path,
                         const QString& kind,
-                        const QSize& size);
+                        const QSize& size,
+                        const QString& editSource);
 
 private:
     void begin();
@@ -50,10 +60,11 @@ private:
     void cancel();
     void onStopped(bool ok);
     void startGifConversion();
-    void finish(const QString& path, const QString& kind);
+    void finish(const QString& path,
+                const QString& kind,
+                const QString& editSource);
     void fail(const QString& message);
     void cleanup();
-    QString nextOutputPath(const QString& extension) const;
 
     RecordingStateMachine m_machine;
     CaptureRequest::RecordMode m_mode = CaptureRequest::RecordNone;

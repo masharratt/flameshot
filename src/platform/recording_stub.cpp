@@ -3,7 +3,11 @@
 
 #include "gifencoder.h"
 #include "screenrecorder.h"
+#include "videoedit.h"
+#include "videopreview.h"
 #include "videothumbnail.h"
+
+#include <QLabel>
 
 namespace {
 
@@ -23,6 +27,24 @@ public:
         done(false, QString());
     }
     void cancel() override {}
+};
+
+class UnsupportedPreview : public VideoPreview
+{
+public:
+    explicit UnsupportedPreview(QWidget* parent)
+      : m_label(new QLabel(QStringLiteral("Preview is not available here."),
+                           parent))
+    {}
+    QWidget* widget() override { return m_label; }
+    void play() override {}
+    void pause() override {}
+    bool isPlaying() const override { return false; }
+    void seek(double) override {}
+    double position() const override { return 0.0; }
+
+private:
+    QLabel* m_label;
 };
 
 } // namespace
@@ -51,4 +73,31 @@ void encodeGifAsync(const GifEncodeParams&,
 QImage videoFirstFrame(const QString&, const QSize&)
 {
     return QImage();
+}
+
+QImage videoFrameAt(const QString&, double, const QSize&)
+{
+    return QImage();
+}
+
+VideoInfo probeVideo(const QString&)
+{
+    return {};
+}
+
+bool exportVideoBlocking(const VideoExportParams&, QString* error)
+{
+    *error = QStringLiteral("Video export is not supported here.");
+    return false;
+}
+
+void exportVideoAsync(const VideoExportParams&,
+                      std::function<void(bool ok, QString error)> done)
+{
+    done(false, QStringLiteral("Video export is not supported here."));
+}
+
+std::unique_ptr<VideoPreview> createVideoPreview(const QString&, QWidget* parent)
+{
+    return std::make_unique<UnsupportedPreview>(parent);
 }

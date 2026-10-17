@@ -1,6 +1,6 @@
 # State Machines
 
-**Last Updated:** 2026-10-16 (capture timer lifecycle)
+**Last Updated:** 2026-10-16 (recording editor lifecycle; GIF recordings keep their source MP4 for editing)
 
 ## 1. Capture Overlay
 
@@ -49,7 +49,7 @@ stateDiagram-v2
 | Recording | Frames are being written to the temp MP4. |
 | Stopping | Waiting for the native recorder to finalise the file. |
 | Converting | GIF only: temp MP4 is being turned into a GIF. |
-| Done | File saved; history entry and toast follow. |
+| Done | File saved; history entry and toast follow. GIF: the temp MP4 is kept and handed to the toast as the edit source (see Recording Editor). |
 | Failed | Start, record, stop or conversion failed. |
 | Cancelled | User cancelled while recording; temp file discarded. |
 
@@ -129,4 +129,51 @@ stateDiagram-v2
   Counting --> Cancelled
   Capturing --> Idle
   Cancelled --> Idle
+```
+
+## 4. Recording Editor
+
+**Source:** `src/core/recordingedit.h` (`EditState`, `canEditTransition`, `EditStateMachine`), driven by `src/widgets/recordingeditor.cpp`. Opened by Edit on a recording toast.
+
+### States
+| State | Meaning |
+|-------|---------|
+| Editing | Preview, trim handles, Beautify and Export are live. |
+| Exporting | Trimmed (and beautified) MP4 is being written. |
+| Converting | GIF export only: the exported MP4 is being turned into a GIF. |
+| Saved | New file written; history entry and toast follow. |
+| Failed | Export or conversion failed; the message is shown. |
+| Closed | Window gone; a temp edit source has been removed. |
+
+### Transitions
+| From | To | Trigger | Guard |
+|------|----|---------|-------|
+| Editing | Exporting | Export MP4 or Export GIF | none |
+| Editing | Closed | Cancel or window closed | none |
+| Exporting | Converting | MP4 written | GIF export |
+| Exporting | Saved | MP4 written | MP4 export |
+| Exporting | Failed | Export error | none |
+| Converting | Saved | GIF written | none |
+| Converting | Failed | Conversion error | none |
+| Failed | Editing | Error shown | none |
+| Failed | Closed | Window closed | none |
+| Saved | Closed | Window closes itself | none |
+
+Closing the window while Exporting or Converting is refused. The edit source is the saved MP4 itself, or for a GIF the kept temp MP4; the toast owns a temp source until Edit hands it to the editor, and whichever holds it last removes it.
+
+### Diagram
+```mermaid
+stateDiagram-v2
+  [*] --> Editing
+  Editing --> Exporting
+  Editing --> Closed
+  Exporting --> Converting
+  Exporting --> Saved
+  Exporting --> Failed
+  Converting --> Saved
+  Converting --> Failed
+  Failed --> Editing
+  Failed --> Closed
+  Saved --> Closed
+  Closed --> [*]
 ```

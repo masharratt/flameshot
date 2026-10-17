@@ -12,6 +12,8 @@ target_sources(
         capturetoast.h
         capturecountdown.h
         recordingcontrol.h
+        recordingeditor.h
+        trimtimeline.h
         capturehistorywindow.h
         editorwindow.h
         editedthumbnail.h
@@ -48,6 +50,8 @@ target_sources(
         capturetoast.cpp
         capturecountdown.cpp
         recordingcontrol.cpp
+        recordingeditor.cpp
+        trimtimeline.cpp
         capturehistorywindow.cpp
         editorwindow.cpp
         editedthumbnail.cpp

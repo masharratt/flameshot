@@ -5,6 +5,8 @@ target_sources(flameshot PRIVATE
     screenrecorder.h
     gifencoder.h
     videothumbnail.h
+    videoedit.h
+    videopreview.h
     windowspace.h
 )
 
@@ -14,6 +16,8 @@ if (APPLE)
         macos/screenrecorder.mm
         macos/gifencoder.mm
         macos/videothumbnail.mm
+        macos/videoedit.mm
+        macos/videopreview.mm
         macos/windowspace_mac.mm
         macos/textrecognition.h
         macos/textrecognition.mm
@@ -32,6 +36,8 @@ if (APPLE)
         "-framework AVFoundation"
         "-framework CoreMedia"
         "-framework CoreVideo"
+        "-framework CoreImage"
+        "-framework QuartzCore"
         "-framework ImageIO"
         "-framework UniformTypeIdentifiers"
         "-framework Vision"

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "imageeffects.h"
+#include "beautifylayout.h"
 
 #include <QLinearGradient>
 #include <QPainter>
@@ -11,12 +12,8 @@
 
 namespace {
 
-constexpr int kBlurPasses = 3;
-
-int scaled(int logical, qreal dpr)
-{
-    return static_cast<int>(std::lround(logical * dpr));
-}
+using beautifygeometry::kShadowBlurPasses;
+using beautifygeometry::scaledPx;
 
 // All painting happens in physical pixels, so work on a DPR 1 view of the image
 QImage physical(const QImage& src)
@@ -72,25 +69,6 @@ bool near(QRgb a, QRgb b)
            std::abs(qAlpha(a) - qAlpha(b)) <= kBalanceTolerance;
 }
 
-// Ratio width:height for the aspect presets, {0, 0} when off or unknown
-QSize aspectRatio(int aspect)
-{
-    switch (aspect) {
-        case 1:
-            return { 1, 1 };
-        case 2:
-            return { 16, 9 };
-        case 3:
-            return { 9, 16 };
-        case 4:
-            return { 4, 5 };
-        case 5:
-            return { 4, 3 };
-        default:
-            return {};
-    }
-}
-
 // Number of leading uniform lines (rows or columns) from one edge, limited
 // to maxCount. A line is uniform when every pixel is near the edge's first
 // pixel.
@@ -123,19 +101,19 @@ namespace imageeffects {
 QImage addBorder(const QImage& src, int px, const QColor& color)
 {
     const qreal dpr = src.devicePixelRatio();
-    const int b = scaled(px, dpr);
-    if (src.isNull() || b <= 0) {
+    const beautifygeometry::Step step =
+      beautifygeometry::borderStep(src.size(), px, dpr);
+    if (src.isNull() || step.origin.x() <= 0) {
         return src;
     }
-    QImage out(src.width() + 2 * b,
-               src.height() + 2 * b,
+    QImage out(step.canvas,
                src.hasAlphaChannel() ? QImage::Format_ARGB32_Premultiplied
                                      : QImage::Format_RGB32);
     out.fill(color);
     {
         QPainter p(&out);
         p.setCompositionMode(QPainter::CompositionMode_Source);
-        p.drawImage(b, b, physical(src));
+        p.drawImage(step.origin, physical(src));
     }
     out.setDevicePixelRatio(dpr);
     return out;
@@ -171,16 +149,16 @@ QImage dropShadow(const QImage& src,
         return src;
     }
     const qreal dpr = src.devicePixelRatio();
-    const int radius =
-      std::max(0, (scaled(blur, dpr) + kBlurPasses - 1) / kBlurPasses);
-    const int pad = radius * kBlurPasses;
-    const int dx = scaled(offset.x(), dpr);
-    const int dy = scaled(offset.y(), dpr);
-    const int w = src.width() + 2 * pad + std::abs(dx);
-    const int h = src.height() + 2 * pad + std::abs(dy);
+    const int radius = beautifygeometry::shadowBlurRadius(blur, dpr);
+    const beautifygeometry::Step step =
+      beautifygeometry::shadowStep(src.size(), blur, offset, dpr);
+    const int dx = scaledPx(offset.x(), dpr);
+    const int dy = scaledPx(offset.y(), dpr);
+    const int w = step.canvas.width();
+    const int h = step.canvas.height();
     // Position of the original inside the canvas
-    const int ix = pad + (dx < 0 ? -dx : 0);
-    const int iy = pad + (dy < 0 ? -dy : 0);
+    const int ix = step.origin.x();
+    const int iy = step.origin.y();
     const QImage plain = physical(src);
 
     // Alpha mask of the original at the shadow position
@@ -198,7 +176,7 @@ QImage dropShadow(const QImage& src,
             alpha[y * w + x] = qAlpha(line[x]) / 255.0f;
         }
     }
-    for (int i = 0; i < kBlurPasses; ++i) {
+    for (int i = 0; i < kShadowBlurPasses; ++i) {
         boxBlur(alpha, w, h, radius, true);
         boxBlur(alpha, w, h, radius, false);
     }
@@ -231,24 +209,14 @@ QImage addBackground(const QImage& src,
                      int aspect)
 {
     const qreal dpr = src.devicePixelRatio();
-    const int pad = std::max(0, scaled(padding, dpr));
-    const QSize ratio = aspectRatio(aspect);
+    const beautifygeometry::Step step =
+      beautifygeometry::backgroundStep(src.size(), padding, aspect, dpr);
     if (src.isNull() ||
-        (pad == 0 && mode == BackgroundMode::None && ratio.isEmpty())) {
+        (step.canvas == src.size() && mode == BackgroundMode::None)) {
         return src;
     }
-    int w = src.width() + 2 * pad;
-    int h = src.height() + 2 * pad;
-    if (!ratio.isEmpty()) {
-        // Grow the shorter axis, rounding up so the shot always fits
-        if (qint64(w) * ratio.height() < qint64(h) * ratio.width()) {
-            w = int((qint64(h) * ratio.width() + ratio.height() - 1) /
-                    ratio.height());
-        } else {
-            h = int((qint64(w) * ratio.height() + ratio.width() - 1) /
-                    ratio.width());
-        }
-    }
+    const int w = step.canvas.width();
+    const int h = step.canvas.height();
     const bool opaque = mode != BackgroundMode::None;
     QImage out(w,
                h,
@@ -265,7 +233,7 @@ QImage addBackground(const QImage& src,
     }
     {
         QPainter p(&out);
-        p.drawImage((w - src.width()) / 2, (h - src.height()) / 2, physical(src));
+        p.drawImage(step.origin, physical(src));
     }
     out.setDevicePixelRatio(dpr);
     return out;

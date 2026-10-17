@@ -29,6 +29,7 @@ target_sources(
           captureproject.cpp
           strfparse.cpp
           imageeffects.cpp
+          beautifylayout.cpp
 )
 
 IF (UNIX AND NOT APPLE)

@@ -161,7 +161,10 @@ Flameshot::Flameshot()
     connect(this,
             &Flameshot::recordingSaved,
             this,
-            [](const QString& path, const QString& kind, const QSize& size) {
+            [](const QString& path,
+               const QString& kind,
+               const QSize& size,
+               const QString& editSource) {
                 CaptureHistory history(CaptureHistory::defaultIndexPath());
                 HistoryEntry entry;
                 entry.timestamp = QDateTime::currentDateTimeUtc();
@@ -171,8 +174,16 @@ Flameshot::Flameshot()
                 if (history.append(entry)) {
                     history.trimTo(ConfigHandler().captureHistoryMax());
                 }
-                CaptureToast::showForRecording(
-                  path, kind, ConfigHandler().captureToastSeconds());
+                // The toast offers "Edit recording" and owns editSource; with
+                // no toast there is nothing to edit from, so a temp source
+                // goes now
+                if (!CaptureToast::showForRecording(
+                      path,
+                      kind,
+                      editSource,
+                      ConfigHandler().captureToastSeconds())) {
+                    RecordingController::discardEditSource(editSource, path);
+                }
             });
 
 #if defined(Q_OS_MACOS)

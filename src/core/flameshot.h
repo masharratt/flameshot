@@ -92,9 +92,11 @@ signals:
                       const QRect& selection,
                       const QRect& globalRect);
     // A screen recording was saved. kind is "mp4" or "gif", size in pixels.
+    // editSource is the MP4 to edit from (see RecordingController).
     void recordingSaved(const QString& path,
                         const QString& kind,
-                        const QSize& size);
+                        const QSize& size,
+                        const QString& editSource);
 
 public slots:
     // Record hotkey or menu item: picks an area, or stops a running recording

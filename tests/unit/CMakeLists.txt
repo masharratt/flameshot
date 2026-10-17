@@ -27,8 +27,10 @@ flameshot_add_unit_test(tst_capturehistory SOURCES utils/capturehistory.cpp)
 flameshot_add_unit_test(tst_actionlist SOURCES core/actionlist.cpp)
 flameshot_add_unit_test(tst_actionrunner SOURCES core/actionrunner.cpp core/actionlist.cpp)
 flameshot_add_unit_test(tst_hotkeys SOURCES core/hotkeyutils.cpp)
-flameshot_add_unit_test(tst_imageeffects SOURCES utils/imageeffects.cpp)
+flameshot_add_unit_test(tst_imageeffects SOURCES utils/imageeffects.cpp utils/beautifylayout.cpp)
+flameshot_add_unit_test(tst_beautifylayout SOURCES utils/beautifylayout.cpp utils/imageeffects.cpp)
 flameshot_add_unit_test(tst_recordingstate SOURCES core/recordingstate.cpp)
+flameshot_add_unit_test(tst_recordingedit SOURCES core/recordingedit.cpp)
 flameshot_add_unit_test(tst_gifplan SOURCES core/gifplan.cpp)
 flameshot_add_unit_test(tst_recordinggeometry SOURCES core/recordinggeometry.cpp)
 flameshot_add_unit_test(tst_recordingoptions SOURCES core/recordingoptions.cpp)
@@ -65,4 +67,22 @@ if(APPLE)
     LIBS "-framework Vision" "-framework CoreGraphics" "-framework Foundation")
   target_compile_options(tst_textrecognition PRIVATE
     $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>)
+
+  # Recording editor export (trim + beautify) against a synthetic MP4 made
+  # with AVAssetWriter. The test source is Objective-C++, so it is added by
+  # hand instead of through flameshot_add_unit_test.
+  add_executable(tst_videoedit tst_videoedit.mm
+    "${CMAKE_SOURCE_DIR}/src/platform/macos/videoedit.mm"
+    "${CMAKE_SOURCE_DIR}/src/platform/macos/videothumbnail.mm"
+    "${CMAKE_SOURCE_DIR}/src/core/recordingedit.cpp"
+    "${CMAKE_SOURCE_DIR}/src/utils/beautifylayout.cpp"
+    "${CMAKE_SOURCE_DIR}/src/utils/imageeffects.cpp")
+  target_include_directories(tst_videoedit PRIVATE "${CMAKE_SOURCE_DIR}/src")
+  target_link_libraries(tst_videoedit PRIVATE Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Test
+    "-framework AVFoundation" "-framework CoreMedia" "-framework CoreVideo"
+    "-framework CoreImage" "-framework CoreGraphics" "-framework Foundation")
+  target_compile_options(tst_videoedit PRIVATE
+    $<$<COMPILE_LANGUAGE:OBJCXX>:-fobjc-arc>)
+  add_test(NAME tst_videoedit COMMAND tst_videoedit)
+  set_tests_properties(tst_videoedit PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 endif()

@@ -3,6 +3,8 @@
 #include "capturetoast.h"
 #include "core/flameshot.h"
 #include "core/flameshotdaemon.h"
+#include "core/recordingcontroller.h"
+#include "widgets/recordingeditor.h"
 #include "platform/videothumbnail.h"
 #include "widgets/toaststack.h"
 
@@ -83,6 +85,13 @@ CaptureToast::CaptureToast(const QString& path,
         return b;
     };
     if (recording) {
+        addButton(tr("Edit"), [this]() {
+            // The editor takes over the source and its cleanup
+            const QString source = m_editSource;
+            m_editSource.clear();
+            RecordingEditor::open(m_path, m_kind, source);
+            close();
+        });
         addButton(tr("Copy path"), [this]() {
             FlameshotDaemon::copyToClipboard(
               m_path, tr("Path copied to clipboard."));
@@ -135,12 +144,13 @@ void CaptureToast::showFor(const QString& path,
     toast->m_timer.start();
 }
 
-void CaptureToast::showForRecording(const QString& path,
+bool CaptureToast::showForRecording(const QString& path,
                                     const QString& kind,
+                                    const QString& editSource,
                                     int seconds)
 {
     if (seconds <= 0) {
-        return;
+        return false;
     }
     const qreal dpr = QGuiApplication::primaryScreen()->devicePixelRatio();
     QImage frame;
@@ -157,10 +167,13 @@ void CaptureToast::showForRecording(const QString& path,
     }
     auto* toast = new CaptureToast(
       path, QPixmap::fromImage(frame), QRect(), QRect(), seconds, true);
+    toast->m_kind = kind;
+    toast->m_editSource = editSource;
     s_toasts.prepend(toast);
     restack();
     toast->show();
     toast->m_timer.start();
+    return true;
 }
 
 void CaptureToast::enterEvent(QEnterEvent* event)
@@ -178,6 +191,10 @@ void CaptureToast::leaveEvent(QEvent* event)
 void CaptureToast::closeEvent(QCloseEvent* event)
 {
     m_timer.stop();
+    if (m_recording) {
+        RecordingController::discardEditSource(m_editSource, m_path);
+        m_editSource.clear();
+    }
     s_toasts.removeAll(this);
     QWidget::closeEvent(event);
     restack();

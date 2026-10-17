@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// First frame of a video for the history grid. Compiled with ARC.
+// Frames of a video for the history grid, toasts and tests. Compiled with
+// ARC.
 
 #define QT_NO_KEYWORDS
 
@@ -19,6 +20,11 @@
 
 QImage videoFirstFrame(const QString& path, const QSize& maxPixels)
 {
+    return videoFrameAt(path, 0.0, maxPixels);
+}
+
+QImage videoFrameAt(const QString& path, double seconds, const QSize& maxPixels)
+{
     @autoreleasepool {
         NSURL* url = [NSURL
           fileURLWithPath:[NSString stringWithUTF8String:path.toUtf8().constData()]];
@@ -26,11 +32,20 @@ QImage videoFirstFrame(const QString& path, const QSize& maxPixels)
         AVAssetImageGenerator* generator =
           [AVAssetImageGenerator assetImageGeneratorWithAsset:asset];
         generator.appliesPreferredTrackTransform = YES;
-        generator.maximumSize = CGSizeMake(maxPixels.width(), maxPixels.height());
+        if (!maxPixels.isEmpty()) {
+            generator.maximumSize =
+              CGSizeMake(maxPixels.width(), maxPixels.height());
+        }
+        // The first frame may be anywhere near 0; a later time is exact
+        if (seconds > 0.0) {
+            generator.requestedTimeToleranceBefore = kCMTimeZero;
+            generator.requestedTimeToleranceAfter = kCMTimeZero;
+        }
 
         __block CGImageRef cg = NULL;
         dispatch_semaphore_t done = dispatch_semaphore_create(0);
-        [generator generateCGImageAsynchronouslyForTime:kCMTimeZero
+        [generator generateCGImageAsynchronouslyForTime:CMTimeMakeWithSeconds(
+                                                          seconds, 600)
                                       completionHandler:^(CGImageRef image,
                                                           CMTime,
                                                           NSError*) {

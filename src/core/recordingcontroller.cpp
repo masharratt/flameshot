@@ -168,7 +168,7 @@ void RecordingController::onStopped(bool ok)
         QFile::remove(m_tempPath);
     }
     m_machine.transition(RecState::Done);
-    finish(dest, kMp4);
+    finish(dest, kMp4, dest);
 }
 
 void RecordingController::startGifConversion()
@@ -184,17 +184,21 @@ void RecordingController::startGifConversion()
     params.fps = config.gifFps();
     params.maxWidth = config.gifMaxWidth();
     encodeGifAsync(params, [this, params](bool ok, QString error) {
-        QFile::remove(params.inputMp4);
         if (!ok) {
+            QFile::remove(params.inputMp4);
             fail(tr("GIF conversion failed: %1").arg(error));
             return;
         }
+        // The temp MP4 is kept so the GIF can be trimmed and re-made from
+        // it; the receiver of recordingSaved owns it from here
         m_machine.transition(RecState::Done);
-        finish(params.outputGif, kGif);
+        finish(params.outputGif, kGif, params.inputMp4);
     });
 }
 
-void RecordingController::finish(const QString& path, const QString& kind)
+void RecordingController::finish(const QString& path,
+                                 const QString& kind,
+                                 const QString& editSource)
 {
     QSize size;
     if (kind == kGif) {
@@ -208,7 +212,9 @@ void RecordingController::finish(const QString& path, const QString& kind)
     }
     cleanup();
     m_machine.transition(RecState::Idle);
-    emit recordingSaved(path, kind, size);
+    // The temp file now belongs to the receiver, so fail() must not touch it
+    m_tempPath.clear();
+    emit recordingSaved(path, kind, size, editSource);
 }
 
 void RecordingController::fail(const QString& message)
@@ -237,7 +243,15 @@ void RecordingController::cleanup()
     // keep it until the next recording replaces it.
 }
 
-QString RecordingController::nextOutputPath(const QString& extension) const
+void RecordingController::discardEditSource(const QString& editSource,
+                                            const QString& savedPath)
+{
+    if (!editSource.isEmpty() && editSource != savedPath) {
+        QFile::remove(editSource);
+    }
+}
+
+QString RecordingController::nextOutputPath(const QString& extension)
 {
     QString dir = ConfigHandler().savePath();
     if (dir.isEmpty()) {

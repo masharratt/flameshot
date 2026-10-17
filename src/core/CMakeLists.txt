@@ -12,6 +12,7 @@ target_sources(flameshot PRIVATE
     recordinggeometry.h
     recordingoptions.h
     recordingstate.h
+    recordingedit.h
 )
 
 target_sources(flameshot PRIVATE
@@ -25,6 +26,7 @@ target_sources(flameshot PRIVATE
     recordinggeometry.cpp
     recordingoptions.cpp
     recordingstate.cpp
+    recordingedit.cpp
     flameshot.cpp
     flameshotdaemon.cpp
     hotkeyutils.cpp
